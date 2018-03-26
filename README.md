@@ -2,7 +2,7 @@ SPlot - Scala 2d Plotting library
 =================================
 
 _Splot_ is a poor-man replacement of great [matplotlib](https://matplotlib.org/) Python library for Scala.
-Source for the library is available through anonymous http at. To clone do
+Source for the library is available through anonymous http.
 ```bash
 git clone http://git.devfortress.xyz/splot
 ```
