@@ -10,6 +10,8 @@ git clone http://git.devfortress.xyz/splot
 It can plot line plots, scatter plots and arbitrary closed polygons.
 Below we will plot following example
 ![Rabbit](http://www.devfortress.xyz/assets/splot-simple-example.png)
+Complete code for this example avilable in [SimplePlotExample.scala](https://git.devfortress.xyz/plugins/gitiles/splot/+/master/src/test/scala/xyz/devfortress/splot/examples/SimplePlotExample.scala)
+
 To start using it first import relevant classes and objects
 ```scala
 import xyz.devfortress.splot._
