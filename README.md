@@ -2,8 +2,12 @@ SPlot - Scala 2d Plotting library
 =================================
 
 _Splot_ is a poor-man replacement of great [matplotlib](https://matplotlib.org/) Python library for Scala.
+Source for the library is available through anonymous http at. To clone do
+```bash
+git clone http://git.devfortress.xyz/splot
+```
 
-It can plot line plots, scatter plots and arbitrary closed polygons. 
+It can plot line plots, scatter plots and arbitrary closed polygons.
 Below we will plot following example
 ![Rabbit](http://www.devfortress.xyz/assets/splot-simple-example.png)
 To start using it first import relevant classes and objects
@@ -64,3 +68,6 @@ And finally display window with the plot
 ```scala
 fig.show()
 ```
+You can zoom into arbitrary section of the plot by dragging mouse with left mouse button pressed (zoom rectangle will
+be displayed). And you can reset to original (un-zoomed) view by pressing key 'r' on keyboard. To quit you can either
+close window or press key 'q'.
