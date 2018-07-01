@@ -2,7 +2,7 @@ SPlot Basic Example
 ===================
 
 Below we will plot following example
-![Rabbit](http://www.devfortress.xyz/assets/splot-simple-example.png)
+![Example Plot](http://www.devfortress.xyz/assets/splot-simple-example.png)
 Complete code for this example avilable in [SimplePlotExample.scala](https://git.devfortress.xyz/plugins/gitiles/splot/+/master/src/test/scala/xyz/devfortress/splot/examples/SimplePlotExample.scala)
 
 To start using it first import relevant classes and objects

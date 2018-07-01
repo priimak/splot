@@ -1,4 +1,5 @@
-SPlot - Scala 2d Plotting library
+![SPlot Logo](http://www.devfortress.xyz/assets/splot-logo.png)
+SPlot - Scala 2D Plotting library
 =================================
 
 _SPlot_ is a poor-man replacement of great [matplotlib](https://matplotlib.org/) Python library for Scala.
