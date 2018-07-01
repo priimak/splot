@@ -7,6 +7,19 @@ Source for the library is available through anonymous http.
 git clone http://git.devfortress.xyz/splot
 ```
 
+Current version of this library is available on maven central at this coordinates
+
+```bash
+libraryDependencies += "xyz.devfortress.splot" % "splot-core_2.12" % "0.2.0"
+```
+```bash
+<dependency>
+    <groupId>xyz.devfortress.splot</groupId>
+    <artifactId>splot-core_2.12</artifactId>
+    <version>0.2.0</version>
+</dependency>
+```
+
 It can plot line plots, scatter plots, arbitrary closed polygons etc.
 
 * [Simple Example](EXAMPLE.md)
