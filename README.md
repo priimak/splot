@@ -9,7 +9,7 @@ Source for the library is available through anonymous http.
 git clone http://git.devfortress.xyz/splot
 ```
 
-Current version of this library is available on maven central at this coordinates
+Current version of this library is available on maven central at these coordinates
 
 ```bash
 libraryDependencies += "xyz.devfortress.splot" % "splot-core_2.12" % "0.2.0"
