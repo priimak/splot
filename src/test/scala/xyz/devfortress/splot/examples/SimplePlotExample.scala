@@ -2,8 +2,6 @@ package xyz.devfortress.splot.examples
 
 import xyz.devfortress.splot._
 
-import scala.collection.immutable
-
 object SimplePlotExample {
   // function that we will plot
   def f(x: Double): Double = Math.sin(x) / x
@@ -47,6 +45,11 @@ object SimplePlotExample {
       Seq((8.2, 0.6), (12, 0.5), (9.4, 0.95), (8.8, 0.93)),
       fillColor = Some(Color.PINK), color = Color.BLACK, lineWidth = 5
     )
+
+    // plot z-point plot using default "viridis" colormap
+    val zdata = (for (x <- 4.0 to 8 by 0.01; y <- 0.3 to 0.36 by 0.01) yield
+      ((x, y), (x - 4)/4.00)).unzip
+    fig.zscatter(zdata._1, zdata._2, colorMap = colormaps.inferno)
 
     // display window with the plot
     fig.show()

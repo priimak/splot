@@ -56,6 +56,33 @@ final case class PointPlot(
 }
 
 /**
+ * ZPoint plot is very similar to PointPlot but also contains sequence of zValues that should be in range from 0 to 1
+ * inclusive and color of each point is determined by by calling provided colorMap function which takes value from
+ * zValues for a given point and returns color to be used for plotting this point.
+ *
+ * @param data sequence of data points.
+ * @param zValues sequence of z-values for each point in "data" sequence (must be the same size as size of "data").
+ * @param pointSize point size. Must be greater than 0.
+ * @param colorMap color map function that transforms each z-value into color.
+ * @param pointType type of data points, i.e. how we display them as dots, crosses or something else.
+ */
+final case class ZPointPlot(
+  data: Seq[(Double, Double)],
+  zValues: Seq[Double],
+  pointSize: Int = 5,
+  colorMap: Double => Color = colormaps.viridis,
+  pointType: PointType = PointType.Dot
+) extends PlotBase {
+  assert(pointSize > 0)
+  assert(data.size == zValues.size)
+
+  /**
+   * Primary color for this plot is ignored
+   */
+  override def color: Color = Color.BLACK
+}
+
+/**
  * Plot shown as set of x-y points (i.e. a scatter plot).
  *
  * @param data sequence of data points.
