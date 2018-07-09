@@ -2,11 +2,14 @@
 
  Scala 2D Plotting library.
 ===========================
-_Version: 0.2.0_
+_Version: 0.3.0-SNAPSHOT_ 
 
-Documentation for current snapshot is available [here](https://git.devfortress.xyz/plugins/gitiles/splot/+/master/README.md).
+[Roadmap](http://git.devfortress.xyz/plugins/gitiles/splot/+/master/ROADMAP.md).
+
+Documentation for latest release version (0.2.0) is available [here](https://git.devfortress.xyz/plugins/gitiles/splot/+/rel-0.2.0-doc/README.md).
 
 _SPlot_ is a poor-man replacement of great [matplotlib](https://matplotlib.org/) Python library for Scala.
+
 Source for the library is available through anonymous http.
 ```bash
 git clone http://git.devfortress.xyz/splot
