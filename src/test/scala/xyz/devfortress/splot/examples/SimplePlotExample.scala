@@ -11,6 +11,15 @@ object SimplePlotExample {
 
   def main(args: Array[String]): Unit = {
     val fig = Figure()
+    fig.map(
+      f = (x, y) => Math.exp(-(x * x + y * y)/3) * Math.cos((x * x + y * y)/(Math.abs(x / y) + 0.04)) * (y * x),
+      xDomain = (-6, 6),
+      yDomain = (-3, 3),
+      inDomain = (x, y) => (x * x / 1.3 + y * y * 3) < 25,
+      colorMap = colormaps.inferno
+    )
+
+    fig.map(f = (_,y) => y, xDomain = (7, 7.3), yDomain = (-2.5, -0.5))//, zRange = (-2.5, -0.5))
 
     // plot function f(x) as line plot
     val fdata: Seq[(Double, Double)] = (0.1 to 20.0 by 0.2).map(x => (x, f(x)))

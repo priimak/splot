@@ -6,15 +6,41 @@ import scala.math.{max, min}
 
 sealed trait Plot extends CommonSPlotLibTrait {
   /**
-   * Domain, i.e. inclusive range along the x-axis.
-   */
+    * Domain, i.e. inclusive range along the x-axis.
+    */
   def domain: (Double, Double)
 
   /**
-   * Range, i.e. inclusive range along the y-axis.
-   */
+    * Range, i.e. inclusive range along the y-axis.
+    */
   def range: (Double, Double)
 
+  /**
+   * Domain predicate. Function that will use used to determine if particular point is within x-y domain.
+   */
+  def inDomain: (Double, Double) => Boolean
+}
+
+sealed trait LazyZMapPlot extends Plot {
+  /**
+    * Function that will be used to display color point for each pixel of the plot that falls into function domain.
+    */
+  def zFunction: (Double, Double) => Double
+
+  /**
+    * Range of Z value as returned by the zFunction. If there z-values that fall outside of this range their color will
+    * be clipped.
+    */
+  def zRange: (Double, Double)
+
+  /**
+    * Color map to be used when displaying this heat-map like plot.
+    * @return
+    */
+  def colorMap: Double => Color = colormaps.viridis
+}
+
+sealed trait SimplePlot extends Plot {
   /**
    * @return Primary color for this plot
    */
@@ -26,7 +52,7 @@ sealed trait Plot extends CommonSPlotLibTrait {
   def data: Seq[Point]
 }
 
-abstract class PlotBase extends Plot {
+abstract class PlotBase extends SimplePlot {
   override val domain: (Double, Double) =
     data.foldLeft((data.head._1, data.head._1))(
       (acc, v) => (min(acc._1, v._1), max(acc._2, v._1))
@@ -36,6 +62,9 @@ abstract class PlotBase extends Plot {
     data.foldLeft((data.head._2, data.head._2))(
       (acc, v) => (min(acc._1, v._2), max(acc._2, v._2))
     )
+
+  override def inDomain: (Double, Double) => Boolean =
+    (x, y) => domain._1 <= x && x <= domain._2 && range._1 <= y && y <= range._2s
 }
 
 /**
@@ -115,3 +144,15 @@ final case class Shape(
 ) extends PlotBase {
   assert(lineWidth >= 0, "Line width might be greater or equals to 0")
 }
+
+/**
+ * Simple rectangular heat map plot of certain zFunction that maps points in x,y plane into z-values.
+ */
+final case class ZMapPlot(
+  zFunction: (Double, Double) => Double,
+  override val domain: (Double, Double),
+  override val range: (Double, Double),
+  zRange: (Double, Double) = (0, 0),
+  colorMap: Double => Color = colormaps.viridis,
+  override val inDomain: (Double, Double) => Boolean
+) extends Plot
