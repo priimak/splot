@@ -64,7 +64,7 @@ abstract class PlotBase extends SimplePlot {
     )
 
   override def inDomain: (Double, Double) => Boolean =
-    (x, y) => domain._1 <= x && x <= domain._2 && range._1 <= y && y <= range._2s
+    (x, y) => domain._1 <= x && x <= domain._2 && range._1 <= y && y <= range._2
 }
 
 /**

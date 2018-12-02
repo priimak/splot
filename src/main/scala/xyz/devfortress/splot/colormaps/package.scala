@@ -8,13 +8,16 @@ package object colormaps {
    */
   def makeColormap(cData: Map[String, Seq[(Double, Double, Double)]]): Double => Color = {
     val r = cData("red")
-    val redRanges = (r zip r.tail).map(rr => ((rr._1._1, rr._2._1), rr._2._1 - rr._1._1, rr._1._3, rr._2._2 - rr._1._3))
+    val redRanges = (r zip r.tail)
+      .map(rr => ((rr._1._1, rr._2._1), rr._2._1 - rr._1._1, rr._1._3, rr._2._2 - rr._1._3))
 
     val g = cData("green")
-    val greenRanges = (g zip g.tail).map(rr => ((rr._1._1, rr._2._1), rr._2._1 - rr._1._1, rr._1._3, rr._2._2 - rr._1._3))
+    val greenRanges = (g zip g.tail)
+      .map(rr => ((rr._1._1, rr._2._1), rr._2._1 - rr._1._1, rr._1._3, rr._2._2 - rr._1._3))
 
     val b = cData("blue")
-    val blueRanges = (b zip b.tail).map(rr => ((rr._1._1, rr._2._1), rr._2._1 - rr._1._1, rr._1._3, rr._2._2 - rr._1._3))
+    val blueRanges = (b zip b.tail)
+      .map(rr => ((rr._1._1, rr._2._1), rr._2._1 - rr._1._1, rr._1._3, rr._2._2 - rr._1._3))
 
     value => {
       val nVal = if (value > 1) 1 else if (value < 0) 0 else value
