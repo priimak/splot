@@ -1,9 +1,9 @@
 package xyz.devfortress.splot
 
 import java.awt.Color.WHITE
-import java.awt.event.{KeyAdapter, KeyEvent, MouseAdapter, MouseEvent, MouseMotionAdapter}
+import java.awt.event._
 import java.awt.image.BufferedImage
-import java.awt.{BasicStroke, Color, Dimension, Graphics, Graphics2D}
+import java.awt.{Font, _}
 import java.nio.file.Paths
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
@@ -39,11 +39,16 @@ class Figure(
       topPadding: Int = 50,
       domain: Option[(Double, Double)] = None,
       range: Option[(Double, Double)] = None,
+      xTicks: ((Double, Double)) => Seq[(Double, String)] = Ticks.ticks10,
+      yTicks: ((Double, Double)) => Seq[(Double, String)] = Ticks.ticks10,
+      title: String = "",
+      titleFont: Font = Font.decode("Times-20"),
       antialiasing: Boolean = true
     ) extends CommonSPlotLibTrait {
   private var currentDomain: (Double, Double) = domain.getOrElse((0, 0))
   private var curentRange: (Double, Double) = range.getOrElse((0, 0))
   private val plots: mutable.MutableList[Plot] = mutable.MutableList()
+  private val labels: mutable.MutableList[Label] = mutable.MutableList()
   val currentImage = new AtomicReference[BufferedImage]()
   private val selectingForZoom = new AtomicBoolean(false)
   private val frame: AtomicReference[JFrame] = new AtomicReference[JFrame]()
@@ -61,6 +66,12 @@ class Figure(
     plots += plot
     this
   }
+
+  def +=(label: Label): Figure = {
+    labels += label
+    this
+  }
+
 
   /**
    * Convenience function that can be used instead of fig += LinePlot(...). Adds line plot.
@@ -350,6 +361,43 @@ class Figure(
           setStroke(new BasicStroke(2))
           drawRect(leftPadding, topPadding, plotWidth, plotHeight)
 
+          // Draw x-ticks.
+          val bottomYPos = plotHeight + topPadding
+          for (tick <- xTicks(currentDomain)) {
+            val xPos = xScale(tick._1)
+            val tickYEnd = bottomYPos + 7
+            drawLine(xPos, bottomYPos, xPos, tickYEnd)
+            drawXCenteredString(g2, tick._2, xPos, tickYEnd + 12)
+          }
+
+          // Draw y-ticks.
+          val origTransformation = g2.getTransform
+          for (tick <- yTicks(curentRange)) {
+            val yPos = yScale(tick._1)
+            drawLine(leftPadding - 7, yPos, leftPadding, yPos)
+            g2.rotate(-Math.PI / 2, leftPadding - 12, yPos)
+            drawXCenteredString(g2, tick._2, leftPadding - 12, yPos)
+            g2.setTransform(origTransformation)
+          }
+
+          // Draw labels.
+          for (label <- labels) {
+            label.draw(g2, (xScale(label.x), yScale(label.y)))
+          }
+
+          // Draw title if any
+          if (title != "") {
+            val savedFont = g2.getFont
+            g2.setFont(titleFont)
+            val fontMetrics = g2.getFontMetrics()
+            g2.drawString(
+              title,
+              (plotWidth + leftPadding + rightPadding - fontMetrics.stringWidth(title)) / 2,
+              topPadding - fontMetrics.getHeight
+            )
+            g2.setFont(savedFont)
+          }
+
           currentImage.set(image)
           g.drawImage(image, 0, 0, this)
 
@@ -364,6 +412,9 @@ class Figure(
       }
 
       override def getPreferredSize: Dimension = new Dimension(1422, 800)
+
+      private def drawXCenteredString(g: Graphics2D, text: String, x: Int, y: Int): Unit =
+        g.drawString(text, x - g.getFontMetrics().stringWidth(text) / 2, y)
     }
 
     plotPanel.addMouseListener(new MouseAdapter {
@@ -506,8 +557,10 @@ object Figure {
             bottomPadding: Int = 50,
             topPadding: Int = 50,
             domain: Option[(Double, Double)] = None,
-            range: Option[(Double, Double)] = None)
+            range: Option[(Double, Double)] = None,
+            xTicks: ((Double, Double)) => Seq[(Double, String)] = Ticks.ticks10,
+            yTicks: ((Double, Double)) => Seq[(Double, String)] = Ticks.ticks10)
            (implicit range2OptionD: ((Double, Double)) => Option[(Double, Double)],
             range2OptionI: ((Int, Int)) => Option[(Double, Double)]): Figure =
-    new Figure(name, bgcolor, leftPadding, rightPadding, bottomPadding, topPadding, domain, range)
+    new Figure(name, bgcolor, leftPadding, rightPadding, bottomPadding, topPadding, domain, range, xTicks, yTicks)
 }

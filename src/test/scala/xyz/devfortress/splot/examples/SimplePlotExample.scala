@@ -1,5 +1,6 @@
 package xyz.devfortress.splot.examples
 
+import java.awt.Font
 import java.lang.Math.abs
 
 import xyz.devfortress.splot._
@@ -12,7 +13,12 @@ object SimplePlotExample {
   def df(x: Double): Double = Math.cos(x) / x - Math.sin(x) / (x * x)
 
   def main(args: Array[String]): Unit = {
-    val fig = Figure()
+    val fig = new Figure(
+      xTicks = Ticks(0 to 50 by 2),
+      domain = (0, 20),
+      antialiasing = true,
+      title = "Simple Plot Example"
+    )
 
     // Plot heat map like plot of (x,y)=>z function that.
     fig.map(f = (x, _) => x, xDomain = (7, 15), yDomain = (-0.4, -0.2))//, zRange = (-2.5, -0.5))
@@ -53,6 +59,8 @@ object SimplePlotExample {
       Seq((8.2, 0.6), (12, 0.5), (9.4, 0.95), (8.8, 0.93)),
       fillColor = Some(Color.PINK), color = Color.BLACK, lineWidth = 5
     )
+
+    fig += Label("sin(x)/x", 2, 0.5, Font.decode("Arial-18"))
 
     // Display window with the plot.
     fig.show()
