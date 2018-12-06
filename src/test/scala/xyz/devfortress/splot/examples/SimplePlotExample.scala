@@ -21,10 +21,10 @@ object SimplePlotExample {
     )
 
     // Plot heat map like plot of (x,y)=>z function that.
-    fig.map(f = (x, _) => x, xDomain = (7, 15), yDomain = (-0.4, -0.2))//, zRange = (-2.5, -0.5))
+    fig.map(f = (x, _) => x, xDomain = (7, 15), yDomain = (-0.4, -0.2))
 
     // Plot function f(x) as line plot.
-    val fdata: Seq[(Double, Double)] = (0.1 to 20.0 by 0.2).map(x => (x, f(x)))
+    val fdata: Seq[(Double, Double)] = (0.1 to 20.0 by 0.1).map(x => (x, f(x)))
     fig.plot(fdata, lw = 4, color = "orange")
 
     // Plot number of cross-points along the line plot.
@@ -38,7 +38,7 @@ object SimplePlotExample {
       fig.plot(Seq((x - 3, f(x) - 3 * df(x)), (x + 3, f(x) + 3 * df(x))))
     })
 
-    // Draw filled circles at points where we take derivative. Color of the points will depend on value of
+    // Draw filled circles at points where we take derivatives. Color of the points will depend on value of
     // derivative at the points.
     import java.awt.Color
     val maxDerivative = x.map(f).map(abs).max
@@ -47,6 +47,7 @@ object SimplePlotExample {
 
     // Plot three rectangles. First rectangle has only boundary drawn.
     fig.rectangle((15, 0.3), 1, 0.3)
+    fig.rectangle((15, 0), 1, 0.3)
 
     // Second rectangle has boundaries drawn as lines and also filled with blue (transparency used by default is 0.2).
     fig.rectangle((13.7, 0.34), 3, 0.1, fillColor = "blue")

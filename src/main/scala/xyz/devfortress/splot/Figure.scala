@@ -8,6 +8,7 @@ import java.nio.file.Paths
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 
+import javax.imageio.ImageIO
 import javax.swing.{JFrame, JOptionPane, JPanel}
 
 import scala.collection.mutable
@@ -80,8 +81,8 @@ class Figure(
    * @param color color of the line.
    * @param lw line width.
    */
-  def plot[C: ColorLike](data: Seq[Point], color: C = Color.BLUE, lw: Int = 1): Figure = {
-    plots += LinePlot(data, ColorLike[C].asColor(color), lw)
+  def plot[C: ColorLike, D: SeqOfDoubleTuples](data: Seq[D], color: C = Color.BLUE, lw: Int = 1): Figure = {
+    plots += LinePlot(SeqOfDoubleTuples[D].asDoubleSeq(data), ColorLike[C].asColor(color), lw)
     this
   }
 
@@ -93,10 +94,10 @@ class Figure(
    * @param color color of points.
    * @param pt type of points.
    */
-  def scatter[P: PointTypeLike, C: ColorLike](data: Seq[Point], ps: Int = 3,
-                                              color: C = Color.BLUE, pt: P = PointType.Dot): Figure = {
+  def scatter[P: PointTypeLike, C: ColorLike, D: SeqOfDoubleTuples](data: Seq[D], ps: Int = 3, color: C = Color.BLUE,
+        pt: P = PointType.Dot): Figure = {
     plots += PointPlot(
-      data,
+      SeqOfDoubleTuples[D].asDoubleSeq(data),
       pointSize = ps,
       color = ColorLike[C].asColor(color),
       pointType = PointTypeLike[P].asPointType(pt)
@@ -114,10 +115,10 @@ class Figure(
    * @param pt type of data points, i.e. how we display them as dots, crosses or something else.
    * @tparam P type of points.
    */
-  def zscatter[P: PointTypeLike](data: Seq[Point], zValues: Seq[Double], ps: Int = 5,
+  def zscatter[P: PointTypeLike, D: SeqOfDoubleTuples](data: Seq[D], zValues: Seq[Double], ps: Int = 5,
       colorMap: Double => Color = colormaps.viridis, pt: P = PointType.Dot): Figure = {
     plots += ZPointPlot(
-      data,
+      SeqOfDoubleTuples[D].asDoubleSeq(data),
       zValues,
       pointSize = ps,
       colorMap = colorMap,
@@ -169,21 +170,23 @@ class Figure(
    * @param fillColor optional fill color for the interior of the rectangle
    * @param alpha transparency of the
    */
-  def rectangle[C: ColorLike, S: SomethingLikeColor](anchor: Point, width: Double, height: Double,
+  def rectangle[C: ColorLike, S: SomethingLikeColor, A](anchor: (A, A), width: Double, height: Double,
                 color: C = Color.BLUE,
                 lw: Int = 1,
                 fillColor: S = Option.empty,
-                alpha: Double = 0.2): Figure = {
+                alpha: Double = 0.2)(implicit integral: Integral[A]): Figure = {
     assert(width > 0, "Width must be greated than 0.")
     assert(height > 0, "Height must be greater than 0.")
     assert(alpha > 0 && alpha <= 1, "Transparency value must be in range (0, 1].")
     val maybeColor = SomethingLikeColor[S].asSomething(fillColor)
+    val xAnchor = integral.toDouble(anchor._1)
+    val yAnchor = integral.toDouble(anchor._2)
     plots += Shape(
       Seq(
-        anchor,
-        (anchor._1, anchor._2 + height),
-        (anchor._1 + width, anchor._2 + height),
-        (anchor._1 + width, anchor._2)
+        (xAnchor, yAnchor),
+        (xAnchor, yAnchor + height),
+        (xAnchor + width, yAnchor + height),
+        (xAnchor + width, yAnchor)
       ),
       color = ColorLike[C].asColor(color),
       lineWidth = lw,
@@ -426,7 +429,7 @@ class Figure(
             selectingForZoom.set(true)
             selPoint1 = e.getPoint
           case 3 =>
-            val menu = new PopUpDemo(plotPanel, Figure.this, savedDir)
+            val menu = new PlotPopUpMenu(plotPanel, Figure.this, savedDir)
             menu.show(e.getComponent, e.getX, e.getY)
           case _ => // NOOP
         }
@@ -494,7 +497,7 @@ class Figure(
 
 import javax.swing.{JMenuItem, JPopupMenu}
 
-class PopUpDemo(parent: JPanel, figure: Figure, savedDir: AtomicReference[String]) extends JPopupMenu {
+class PlotPopUpMenu(parent: JPanel, figure: Figure, savedDir: AtomicReference[String]) extends JPopupMenu {
   private val saveFile = new JMenuItem("Save as image file")
   saveFile.addActionListener(_ => {
     import javax.swing.JFileChooser
@@ -507,9 +510,9 @@ class PopUpDemo(parent: JPanel, figure: Figure, savedDir: AtomicReference[String
       val saveToFilePath = Paths.get(fileChooser.getSelectedFile.getAbsolutePath)
       savedDir.set(saveToFilePath.getParent.toAbsolutePath.toString)
       if (saveToFilePath.toString.endsWith(".png"))
-        javax.imageio.ImageIO.write(figure.currentImage.get(), "png", saveToFilePath.toFile)
+        ImageIO.write(figure.currentImage.get(), "png", saveToFilePath.toFile)
       else if(saveToFilePath.toString.endsWith(".jpg"))
-        javax.imageio.ImageIO.write(figure.currentImage.get(), "jpg", saveToFilePath.toFile)
+        ImageIO.write(figure.currentImage.get(), "jpg", saveToFilePath.toFile)
       else
         JOptionPane.showMessageDialog(
           parent, "The only supported file formats for saving are .png and .jpg",

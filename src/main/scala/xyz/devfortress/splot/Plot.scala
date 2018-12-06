@@ -49,7 +49,7 @@ sealed trait SimplePlot extends Plot {
   /**
    * Sequence of points that defines this plot
    */
-  def data: Seq[Point]
+  def data: Seq[(Double, Double)]
 }
 
 abstract class PlotBase extends SimplePlot {
