@@ -10,6 +10,11 @@ domain and range were set explicitly to give equal scales along the `x` and
 `y` axis.
 
 ```scala
+import java.awt.geom.AffineTransform
+import java.awt.{Color, Font}
+
+import xyz.devfortress.splot._
+
 def main(args: Array[String]): Unit = {
   val edgePadding = 0.2
   val newRange = (texas.map(_._2).min - edgePadding, texas.map(_._2).max + edgePadding)
@@ -36,9 +41,10 @@ def main(args: Array[String]): Unit = {
       city.name,
       city.coordinates._1,
       city.coordinates._2 + 0.5 * populationIndex, // slightly shift label upwards
-       font = Font.decode("Serif-15")
+      font = Font.decode("Serif-15")
                  .deriveFont(Font.BOLD)
-                 .deriveFont(AffineTransform.getRotateInstance(-Math.PI/2)))
+                 .deriveFont(AffineTransform.getRotateInstance(-Math.PI/2))
+    )
   }
 
   fig.show(730, 500)

@@ -15,13 +15,13 @@ Python users. At the moment it is far away from this goal but is already usable.
 Current version of this library is available on maven central at these coordinates
 
 ```bash
-libraryDependencies += "xyz.devfortress.splot" % "splot-core_2.12" % "0.2.0"
+libraryDependencies += "xyz.devfortress.splot" % "splot-core_2.12" % "0.3.0"
 ```
 ```bash
 <dependency>
     <groupId>xyz.devfortress.splot</groupId>
     <artifactId>splot-core_2.12</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
 </dependency>
 ```
 
