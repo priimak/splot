@@ -6,5 +6,5 @@ package object splot {
 
   implicit val doubleAsIfIntegral = scala.math.Numeric.DoubleAsIfIntegral
 
-  val derrivedDomain: (Double, Double) => Boolean = (_, _) => true
+  val derivedDomain: (Double, Double) => Boolean = (_, _) => true
 }

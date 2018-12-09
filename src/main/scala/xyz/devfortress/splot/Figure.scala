@@ -5,8 +5,8 @@ import java.awt.event._
 import java.awt.image.BufferedImage
 import java.awt.{Font, _}
 import java.nio.file.Paths
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
+import java.util.concurrent.{ConcurrentHashMap, CountDownLatch}
 
 import javax.imageio.ImageIO
 import javax.swing.{JFrame, JOptionPane, JPanel}
@@ -32,19 +32,19 @@ import scala.math.{max, min}
  *                     to set this value to false.
  */
 class Figure(
-      name: String = "Figure",
-      bgcolor: Color = Color.WHITE,
-      leftPadding: Int = 50,
-      rightPadding: Int = 50,
-      bottomPadding: Int = 50,
-      topPadding: Int = 50,
-      domain: Option[(Double, Double)] = None,
-      range: Option[(Double, Double)] = None,
-      xTicks: ((Double, Double)) => Seq[(Double, String)] = Ticks.ticks10,
-      yTicks: ((Double, Double)) => Seq[(Double, String)] = Ticks.ticks10,
-      title: String = "",
-      titleFont: Font = Font.decode("Times-20"),
-      antialiasing: Boolean = true
+      val name: String = "Figure",
+      val bgcolor: Color = Color.WHITE,
+      val leftPadding: Int = 50,
+      val rightPadding: Int = 50,
+      val topPadding: Int = 50,
+      val bottomPadding: Int = 50,
+      val domain: Option[(Double, Double)] = None,
+      val range: Option[(Double, Double)] = None,
+      val xTicks: (Double, Double) => Seq[(Double, String)] = Ticks.ticks10,
+      val yTicks: (Double, Double) => Seq[(Double, String)] = Ticks.ticks10,
+      val title: String = "",
+      val titleFont: Font = Font.decode("Times-20"),
+      val antialiasing: Boolean = true
     ) extends CommonSPlotLibTrait {
   private var currentDomain: (Double, Double) = domain.getOrElse((0, 0))
   private var curentRange: (Double, Double) = range.getOrElse((0, 0))
@@ -59,64 +59,54 @@ class Figure(
   private val originalDomain = new AtomicReference[(Double, Double)]()
   private val originalRange = new AtomicReference[(Double, Double)]()
   private val zRanges = new ConcurrentHashMap[Int, (Double, Double)]()
+  private val buildingFigure = new CountDownLatch(1)
 
   /**
    * Add new plot to this figure
    */
-  def +=(plot: Plot): Figure = {
-    plots += plot
-    this
-  }
+  def add(plot: Plot): Unit = plots += plot
 
-  def +=(label: Label): Figure = {
-    labels += label
-    this
-  }
-
+  def add(label: Label): Unit = labels += label
 
   /**
    * Convenience function that can be used instead of fig += LinePlot(...). Adds line plot.
    *
-   * @param data sequence of x-y data points forming plot.
+   * @param data  sequence of x-y data points forming plot.
    * @param color color of the line.
-   * @param lw line width.
+   * @param lw    line width.
    */
-  def plot[C: ColorLike, D: SeqOfDoubleTuples](data: Seq[D], color: C = Color.BLUE, lw: Int = 1): Figure = {
+  def plot[C: ColorLike, D: SeqOfDoubleTuples](data: Seq[D], color: C = Color.BLACK, lw: Int = 1): Unit =
     plots += LinePlot(SeqOfDoubleTuples[D].asDoubleSeq(data), ColorLike[C].asColor(color), lw)
-    this
-  }
 
   /**
    * Convenience function that can be used instead of fig += PointPlot(...). Adds scatter plot.
    *
-   * @param data sequence of x-y data points forming plot.
-   * @param ps size of point.
+   * @param data  sequence of x-y data points forming plot.
+   * @param ps    size of point.
    * @param color color of points.
-   * @param pt type of points.
+   * @param pt    type of points.
    */
-  def scatter[P: PointTypeLike, C: ColorLike, D: SeqOfDoubleTuples](data: Seq[D], ps: Int = 3, color: C = Color.BLUE,
-        pt: P = PointType.Dot): Figure = {
+  def scatter[P: PointTypeLike, C: ColorLike, D: SeqOfDoubleTuples](data: Seq[D], ps: Int = 3, color: C = Color.BLACK,
+        pt: P = PointType.Dot): Unit =
     plots += PointPlot(
       SeqOfDoubleTuples[D].asDoubleSeq(data),
       pointSize = ps,
       color = ColorLike[C].asColor(color),
       pointType = PointTypeLike[P].asPointType(pt)
     )
-    this
-  }
 
   /**
    * Convenience function that can be used instead of fig += [[ZPointPlot]](...).
    *
-   * @param data sequence of x-y data points forming plot.
-   * @param zValues sequence of z-values for each point in "data" sequence (must be the same size as size of "data").
-   * @param ps point size. Must be greater than 0.
+   * @param data     sequence of x-y data points forming plot.
+   * @param zValues  sequence of z-values for each point in "data" sequence (must be the same size as size of "data").
+   * @param ps       point size. Must be greater than 0.
    * @param colorMap color map function that transforms each z-value into color.
-   * @param pt type of data points, i.e. how we display them as dots, crosses or something else.
+   * @param pt       type of data points, i.e. how we display them as dots, crosses or something else.
    * @tparam P type of points.
    */
   def zscatter[P: PointTypeLike, D: SeqOfDoubleTuples](data: Seq[D], zValues: Seq[Double], ps: Int = 5,
-      colorMap: Double => Color = colormaps.viridis, pt: P = PointType.Dot): Figure = {
+    colorMap: Double => Color = colormaps.viridis, pt: P = PointType.Dot): Unit =
     plots += ZPointPlot(
       SeqOfDoubleTuples[D].asDoubleSeq(data),
       zValues,
@@ -124,8 +114,6 @@ class Figure(
       colorMap = colorMap,
       pointType = PointTypeLike[P].asPointType(pt)
     )
-    this
-  }
 
   /**
    * Convenience function that can be used instead of fig += [[ZMapPlot]](...) for plotting (x,y)->z function on
@@ -134,47 +122,45 @@ class Figure(
    * f(x,y) are converted into color color pixels according colorMap and zRange arguments. By default passed zRange
    * is (0,0) which means that actual zRange will be computed automatically from values of f(x,y) function.
    *
-   * @param f function z=f(x,y)
-   * @param xDomain inclusive domain of x-values on which f(x,y) is defined.
-   * @param yDomain inclusive domain of y-values on which f(x,y) is defined.
+   * @param f        function z=f(x,y).
+   * @param xDomain  inclusive domain of x-values on which f(x,y) is defined.
+   * @param yDomain  inclusive domain of y-values on which f(x,y) is defined.
    * @param colorMap colormap which transforms each z-value into color; default is viridis.
-   * @param zRange range of z-values produced by f(x,y) function; default range is (0,0) which means that zRange will
-   *               be computed automatically.
+   * @param zRange   range of z-values produced by f(x,y) function; default range is (0,0) which means that zRange will
+   *                 be computed automatically.
    * @param inDomain domain function which can be used to define arbitrary domains in x-y plane where plotting on the
-   *     function f will take place; by default it is assigned to special function "derrivedDomain" which means that it
-   *     will be plotted on xDomain, yDomain rectangle.
+   *                 function f will take place; by default it is assigned to special function "derrivedDomain" which means that it
+   *                 will be plotted on xDomain, yDomain rectangle.
    */
   def map(f: (Double, Double) => Double, xDomain: (Double, Double), yDomain: (Double, Double),
-      colorMap: Double => Color = colormaps.viridis, zRange: (Double, Double) = (0, 0),
-      inDomain: (Double, Double) => Boolean = derrivedDomain): Figure = {
+    colorMap: Double => Color = colormaps.viridis, zRange: (Double, Double) = (0, 0),
+    inDomain: (Double, Double) => Boolean = derivedDomain): Unit =
     plots += ZMapPlot(
       zFunction = f, domain = xDomain, range = yDomain, zRange = zRange, colorMap = colorMap,
       inDomain =
-        if (inDomain.equals(derrivedDomain))
+        if (inDomain.equals(derivedDomain))
           (x, y) => xDomain._1 <= x && x <= xDomain._2 && yDomain._1 <= y && y < yDomain._2
         else
           inDomain
     )
-    this
-  }
 
   /**
    * Add rectangle.
    *
-   * @param anchor left lower corner of the rectangle.
-   * @param width width of the rectangle.
-   * @param height hight of the rectangle.
-   * @param color color of the lines that form boundaries of this rectangle.
-   * @param lw line with for boundary lines. If line width is set to 0 then only interior of the rectangle is
-   *           shaded with fillColor if defined
+   * @param anchor    left lower corner of the rectangle.
+   * @param width     width of the rectangle.
+   * @param height    hight of the rectangle.
+   * @param color     color of the lines that form boundaries of this rectangle.
+   * @param lw        line with for boundary lines. If line width is set to 0 then only interior of the rectangle is
+   *                  shaded with fillColor if defined
    * @param fillColor optional fill color for the interior of the rectangle
-   * @param alpha transparency of the
+   * @param alpha     transparency of the
    */
   def rectangle[C: ColorLike, S: SomethingLikeColor, A](anchor: (A, A), width: Double, height: Double,
-                color: C = Color.BLUE,
-                lw: Int = 1,
-                fillColor: S = Option.empty,
-                alpha: Double = 0.2)(implicit integral: Integral[A]): Figure = {
+    color: C = Color.BLUE,
+    lw: Int = 1,
+    fillColor: S = Option.empty,
+    alpha: Double = 0.2)(implicit integral: Integral[A]): Unit = {
     assert(width > 0, "Width must be greated than 0.")
     assert(height > 0, "Height must be greater than 0.")
     assert(alpha > 0 && alpha <= 1, "Transparency value must be in range (0, 1].")
@@ -195,18 +181,19 @@ class Figure(
         case None => None
       }
     )
-    this
   }
 
   /**
    * Display plot window.
    */
-  def show(): Unit = {
+  def show(size: (Int, Int) = (1422, 800)): Figure = {
     if (frame.get() == null)
-      _show()
+      _show(new Dimension(size._1, size._2))
+    buildingFigure.await()
+    this
   }
 
-  private def _show(): Unit = {
+  private def _show(dimension: Dimension): Unit = {
     // set initial value for domain
     currentDomain = domain.getOrElse((plots.map(_.domain._1).min, plots.map(_.domain._2).max))
     curentRange = range.getOrElse((plots.map(_.range._1).min, plots.map(_.range._2).max))
@@ -366,7 +353,7 @@ class Figure(
 
           // Draw x-ticks.
           val bottomYPos = plotHeight + topPadding
-          for (tick <- xTicks(currentDomain)) {
+          for (tick <- xTicks(currentDomain._1, currentDomain._2)) {
             val xPos = xScale(tick._1)
             val tickYEnd = bottomYPos + 7
             drawLine(xPos, bottomYPos, xPos, tickYEnd)
@@ -375,7 +362,7 @@ class Figure(
 
           // Draw y-ticks.
           val origTransformation = g2.getTransform
-          for (tick <- yTicks(curentRange)) {
+          for (tick <- yTicks(curentRange._1, curentRange._2)) {
             val yPos = yScale(tick._1)
             drawLine(leftPadding - 7, yPos, leftPadding, yPos)
             g2.rotate(-Math.PI / 2, leftPadding - 12, yPos)
@@ -412,9 +399,12 @@ class Figure(
           val rangeForDisplay = ("%.3G".format(curentRange._1), "%.3G".format(curentRange._2))
           frame.get().setTitle(s"$name domain=$domainForDisplay range=$rangeForDisplay")
         }
+        if (buildingFigure.getCount > 0) {
+          buildingFigure.countDown()
+        }
       }
 
-      override def getPreferredSize: Dimension = new Dimension(1422, 800)
+      override def getPreferredSize: Dimension = new Dimension(dimension)
 
       private def drawXCenteredString(g: Graphics2D, text: String, x: Int, y: Int): Unit =
         g.drawString(text, x - g.getFontMetrics().stringWidth(text) / 2, y)
@@ -485,6 +475,7 @@ class Figure(
             }
           }
         })
+        theFrame.setPreferredSize(dimension)
         theFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
         theFrame.getContentPane.add(plotPanel)
         theFrame.pack()
@@ -492,6 +483,28 @@ class Figure(
         theFrame.setVisible(true)
       }
     })
+  }
+
+  def save(file: String): Figure = {
+    val saveToFilePath = Paths.get(file)
+    val image = currentImage.get()
+    if (saveToFilePath.toString.endsWith(".png")) {
+      ImageIO.write(image, "png", saveToFilePath.toFile)
+    } else if(saveToFilePath.toString.endsWith(".jpg")) {
+      ImageIO.write(image, "jpg", saveToFilePath.toFile)
+    } else {
+      throw new IllegalArgumentException(s"Unrecognized image file type in $file")
+    }
+    this
+  }
+
+  def close(): Unit = {
+    val theFrame = frame.get()
+    if (theFrame != null) {
+      theFrame.dispatchEvent(new KeyEvent(
+        theFrame, KeyEvent.KEY_PRESSED, System.currentTimeMillis(), 0, 81, 'q', KeyEvent.KEY_LOCATION_STANDARD
+      ))
+    }
   }
 }
 
@@ -561,9 +574,14 @@ object Figure {
             topPadding: Int = 50,
             domain: Option[(Double, Double)] = None,
             range: Option[(Double, Double)] = None,
-            xTicks: ((Double, Double)) => Seq[(Double, String)] = Ticks.ticks10,
-            yTicks: ((Double, Double)) => Seq[(Double, String)] = Ticks.ticks10)
+            xTicks: (Double, Double) => Seq[(Double, String)] = Ticks.ticks10,
+            yTicks: (Double, Double) => Seq[(Double, String)] = Ticks.ticks10,
+            title: String = "Figure",
+            titleFont: Font = Font.decode("Times-20"),
+            antialiasing: Boolean = true)
            (implicit range2OptionD: ((Double, Double)) => Option[(Double, Double)],
             range2OptionI: ((Int, Int)) => Option[(Double, Double)]): Figure =
-    new Figure(name, bgcolor, leftPadding, rightPadding, bottomPadding, topPadding, domain, range, xTicks, yTicks)
+    new Figure(name, bgcolor, leftPadding, rightPadding, topPadding, bottomPadding, domain, range, xTicks, yTicks,
+      antialiasing = antialiasing, title = title, titleFont = titleFont
+    )
 }

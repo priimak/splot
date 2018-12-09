@@ -1,6 +1,6 @@
 package xyz.devfortress.splot.examples
 
-import java.awt.Font
+import java.awt.{Color, Font}
 import java.lang.Math.abs
 
 import xyz.devfortress.splot._
@@ -17,7 +17,8 @@ object SimplePlotExample {
       xTicks = Ticks(0 to 50 by 2),
       domain = (0, 20),
       antialiasing = true,
-      title = "Simple Plot Example"
+      title = "Simple Plot Example",
+      bgcolor = Color.LIGHT_GRAY
     )
 
     // Plot heat map like plot of (x,y)=>z function that.
@@ -46,8 +47,7 @@ object SimplePlotExample {
     fig.zscatter(x.map(x => (x, f(x))), zValues, pt = "o", ps = 20, colorMap = colormaps.inferno)
 
     // Plot three rectangles. First rectangle has only boundary drawn.
-    fig.rectangle((15, 0.3), 1, 0.3)
-    fig.rectangle((15, 0), 1, 0.3)
+    fig.rectangle((15.0, 0.3), 1, 0.3)
 
     // Second rectangle has boundaries drawn as lines and also filled with blue (transparency used by default is 0.2).
     fig.rectangle((13.7, 0.34), 3, 0.1, fillColor = "blue")
@@ -56,12 +56,12 @@ object SimplePlotExample {
     fig.rectangle((13.3, 0.38), 2.6, 0.2, fillColor = "red", lw = 0, alpha = 0.6)
 
     // Draw arbitrary polygon shape in outline of black lines of lineWidth 5 and filled in nontransparent pink.
-    fig += Shape(
+    fig add Shape(
       Seq((8.2, 0.6), (12, 0.5), (9.4, 0.95), (8.8, 0.93)),
       fillColor = Some(Color.PINK), color = Color.BLACK, lineWidth = 5
     )
 
-    fig += Label("sin(x)/x", 2, 0.5, Font.decode("Arial-18"))
+    fig.add(Label("sin(x)/x", 2, 0.5, Font.decode("Arial-18")))
 
     // Display window with the plot.
     fig.show()

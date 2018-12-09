@@ -112,7 +112,7 @@ final case class ZPointPlot(
 }
 
 /**
- * Plot shown as set of x-y points (i.e. a scatter plot).
+ * Sequence of points connected by line.
  *
  * @param data sequence of data points.
  * @param color color of the lines.
@@ -120,7 +120,7 @@ final case class ZPointPlot(
  */
 final case class LinePlot(
   data: Seq[(Double, Double)],
-  color: Color = Color.BLUE,
+  color: Color = Color.BLACK,
   lineWidth: Int = 1
 ) extends PlotBase {
  assert(lineWidth > 0)
@@ -138,7 +138,7 @@ final case class LinePlot(
  */
 final case class Shape(
   override val data: Seq[(Double, Double)],
-  override val color: Color = Color.BLUE,
+  override val color: Color = Color.BLACK,
   lineWidth: Int = 1,
   fillColor: Option[Color] = None
 ) extends PlotBase {
