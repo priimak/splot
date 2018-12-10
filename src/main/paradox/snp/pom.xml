@@ -1,0 +1,5 @@
+<dependency>
+    <groupId>xyz.devfortress.splot</groupId>
+    <artifactId>splot-core_2.12</artifactId>
+    <version>0.3.0</version>
+</dependency>

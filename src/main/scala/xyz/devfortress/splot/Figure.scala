@@ -160,7 +160,7 @@ class Figure(
     color: C = Color.BLUE,
     lw: Int = 1,
     fillColor: S = Option.empty,
-    alpha: Double = 0.2)(implicit integral: Integral[A]): Unit = {
+    alpha: Double = 1.0)(implicit integral: Integral[A]): Unit = {
     assert(width > 0, "Width must be greated than 0.")
     assert(height > 0, "Height must be greater than 0.")
     assert(alpha > 0 && alpha <= 1, "Transparency value must be in range (0, 1].")

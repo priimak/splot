@@ -1,0 +1,1 @@
+libraryDependencies += "xyz.devfortress.splot" % "splot-core_2.12" % "0.3.0"
