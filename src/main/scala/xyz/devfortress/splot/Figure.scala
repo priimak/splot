@@ -44,7 +44,9 @@ class Figure(
       val yTicks: (Double, Double) => Seq[(Double, String)] = Ticks.ticks10,
       val title: String = "",
       val titleFont: Font = Font.decode("Times-20"),
-      val antialiasing: Boolean = true
+      val antialiasing: Boolean = true,
+      val showGrid: Boolean = false,
+      val gridColor: Color = new Color(0, 0, 0, 50)
     ) extends CommonSPlotLibTrait {
   private var currentDomain: (Double, Double) = domain.getOrElse((0, 0))
   private var curentRange: (Double, Double) = range.getOrElse((0, 0))
@@ -197,10 +199,8 @@ class Figure(
   private def _makeImage(width: Int, height: Int, setRangeAndDomain: Boolean): SPlotImage = {
     if (setRangeAndDomain) {
       // set initial value for domain
-      println(currentDomain)
       currentDomain = domain.getOrElse((plots.map(_.domain._1).min, plots.map(_.domain._2).max))
       curentRange = range.getOrElse((plots.map(_.range._1).min, plots.map(_.range._2).max))
-      println(currentDomain)
     }
 
     import java.awt.image.BufferedImage
@@ -326,6 +326,15 @@ class Figure(
       val tickYEnd = bottomYPos + 7
       drawLine(xPos, bottomYPos, xPos, tickYEnd)
       drawXCenteredString(g2, tick._2, xPos, tickYEnd + 12)
+      if (showGrid) {
+        val savedStroke = getStroke
+        val saveColor = getColor
+        setStroke(new BasicStroke(1))
+        setColor(gridColor)
+        drawLine(xPos, topPadding, xPos, topPadding + plotHeight)
+        setStroke(savedStroke)
+        setColor(saveColor)
+      }
     }
 
     // Draw y-ticks.
@@ -336,7 +345,18 @@ class Figure(
       g2.rotate(-Math.PI / 2, leftPadding - 12, yPos)
       drawXCenteredString(g2, tick._2, leftPadding - 12, yPos)
       g2.setTransform(origTransformation)
+
+      if (showGrid) {
+        val savedStroke = getStroke
+        val saveColor = getColor
+        setStroke(new BasicStroke(1))
+        setColor(gridColor)
+        drawLine(leftPadding, yPos, plotWidth + leftPadding, yPos)
+        setStroke(savedStroke)
+        setColor(saveColor)
+      }
     }
+
 
     // Draw labels.
     for (label <- labels) {
@@ -360,7 +380,6 @@ class Figure(
 
   private def drawXCenteredString(g: Graphics2D, text: String, x: Int, y: Int): Unit =
     g.drawString(text, x - g.getFontMetrics().stringWidth(text) / 2, y)
-
 
   /**
    * Display plot window.
@@ -610,10 +629,11 @@ object Figure {
             yTicks: (Double, Double) => Seq[(Double, String)] = Ticks.ticks10,
             title: String = "Figure",
             titleFont: Font = Font.decode("Times-20"),
-            antialiasing: Boolean = true)
+            antialiasing: Boolean = true,
+            showGrid: Boolean = false)
            (implicit range2OptionD: ((Double, Double)) => Option[(Double, Double)],
             range2OptionI: ((Int, Int)) => Option[(Double, Double)]): Figure =
     new Figure(name, bgcolor, leftPadding, rightPadding, topPadding, bottomPadding, domain, range, xTicks, yTicks,
-      antialiasing = antialiasing, title = title, titleFont = titleFont
+      antialiasing = antialiasing, title = title, titleFont = titleFont, showGrid = showGrid
     )
 }
