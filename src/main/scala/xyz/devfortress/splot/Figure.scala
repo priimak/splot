@@ -630,9 +630,7 @@ object Figure {
             title: String = "Figure",
             titleFont: Font = Font.decode("Times-20"),
             antialiasing: Boolean = true,
-            showGrid: Boolean = false)
-           (implicit range2OptionD: ((Double, Double)) => Option[(Double, Double)],
-            range2OptionI: ((Int, Int)) => Option[(Double, Double)]): Figure =
+            showGrid: Boolean = false): Figure =
     new Figure(name, bgcolor, leftPadding, rightPadding, topPadding, bottomPadding, domain, range, xTicks, yTicks,
       antialiasing = antialiasing, title = title, titleFont = titleFont, showGrid = showGrid
     )

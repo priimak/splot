@@ -34,7 +34,7 @@ def main(args: Array[String]): Unit = {
 Due to the high density of points at the centers of distributions internal structure
 is not really visible. You cannot see that there are too peaks in there. Common solution
 to this problem is to plot points of the distribution semi-transparent. Since
-color density of semi-transparent objects is additive, but adjusting value alpha channel
+color density of semi-transparent objects is additive, but adjusting value of alpha channel
 and point size we can make dense scatter plot to reveal its internal structure. We can do
 that like so:
 
