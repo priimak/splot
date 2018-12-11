@@ -13,10 +13,9 @@ object SimplePlotExample {
   def df(x: Double): Double = Math.cos(x) / x - Math.sin(x) / (x * x)
 
   def main(args: Array[String]): Unit = {
-    val fig = new Figure(
+    val fig = Figure(
       xTicks = Ticks(0 to 50 by 2),
       domain = (0, 20),
-      antialiasing = true,
       title = "Simple Plot Example",
       bgcolor = Color.LIGHT_GRAY
     )

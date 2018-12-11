@@ -1,10 +1,10 @@
 package xyz.devfortress.splot
 
-import java.awt.Color
+import java.awt.{BasicStroke, Color}
 
 import scala.math.{max, min}
 
-sealed trait Plot extends CommonSPlotLibTrait {
+trait Plot extends CommonSPlotLibTrait {
   /**
     * Domain, i.e. inclusive range along the x-axis.
     */
@@ -19,9 +19,11 @@ sealed trait Plot extends CommonSPlotLibTrait {
    * Domain predicate. Function that will use used to determine if particular point is within x-y domain.
    */
   def inDomain: (Double, Double) => Boolean
+
+  def draw(ctx: DrawingContext, plotIndex: Int): Unit
 }
 
-sealed trait LazyZMapPlot extends Plot {
+trait LazyZMapPlot extends Plot {
   /**
     * Function that will be used to display color point for each pixel of the plot that falls into function domain.
     */
@@ -40,7 +42,7 @@ sealed trait LazyZMapPlot extends Plot {
   def colorMap: Double => Color = colormaps.viridis
 }
 
-sealed trait SimplePlot extends Plot {
+trait SimplePlot extends Plot {
   /**
    * @return Primary color for this plot
    */
@@ -82,6 +84,16 @@ final case class PointPlot(
   pointType: PointType = PointType.Dot
 ) extends PlotBase {
   assert(pointSize > 0)
+
+  override def draw(ctx: DrawingContext, plotIndex: Int): Unit = {
+    import ctx._
+    g2.setColor(color)
+    g2.setStroke(new BasicStroke(1))
+    val halfSize = pointSize / 2
+    data.foreach(point => {
+      pointType.drawAt((x2i(point._1), y2i(point._2)), pointSize, halfSize, g2)
+    })
+  }
 }
 
 /**
@@ -109,6 +121,16 @@ final case class ZPointPlot(
    * Primary color for this plot is ignored
    */
   override def color: Color = Color.BLACK
+
+  override def draw(ctx: DrawingContext, plotIndex: Int): Unit = {
+    import ctx._
+    g2.setStroke(new BasicStroke(1))
+    val halfSize = pointSize / 2
+    data.zip(zValues).foreach(point => {
+      g2.setColor(colorMap(point._2))
+      pointType.drawAt((x2i(point._1._1), y2i(point._1._2)), pointSize, halfSize, g2)
+    })
+  }
 }
 
 /**
@@ -124,6 +146,15 @@ final case class LinePlot(
   lineWidth: Int = 1
 ) extends PlotBase {
  assert(lineWidth > 0)
+
+  override def draw(ctx: DrawingContext, plotIndex: Int): Unit = {
+    import ctx._
+    g2.setColor(color)
+    g2.setStroke(new BasicStroke(lineWidth))
+    data.zip(data.tail).foreach(p2 => {
+      g2.drawLine(x2i(p2._1._1), y2i(p2._1._2), x2i(p2._2._1), y2i(p2._2._2))
+    })
+  }
 }
 
 /**
@@ -143,6 +174,20 @@ final case class Shape(
   fillColor: Option[Color] = None
 ) extends PlotBase {
   assert(lineWidth >= 0, "Line width might be greater or equals to 0")
+
+  override def draw(ctx: DrawingContext, plotIndex: Int): Unit = {
+    import ctx._
+    val onScreenXY = data.map(xy => (x2i(xy._1), y2i(xy._2))).unzip
+    if (fillColor.isDefined) {
+      g2.setColor(fillColor.get)
+      g2.fillPolygon(onScreenXY._1.toArray, onScreenXY._2.toArray, data.size)
+    }
+    if (lineWidth > 0) {
+      g2.setColor(color)
+      g2.setStroke(new BasicStroke(lineWidth))
+      g2.drawPolygon(onScreenXY._1.toArray, onScreenXY._2.toArray, data.size)
+    }
+  }
 }
 
 /**
@@ -155,4 +200,50 @@ final case class ZMapPlot(
   zRange: (Double, Double) = (0, 0),
   colorMap: Double => Color = colormaps.viridis,
   override val inDomain: (Double, Double) => Boolean
-) extends Plot
+) extends Plot {
+
+  override def draw(ctx: DrawingContext, plotIndex: Int): Unit = {
+    import ctx._
+    val iMax = imageWidth - rightPadding
+    val jMax = imageHeight - bottomPadding
+    val dx = (currentDomain._2 - currentDomain._1) / (iMax - leftPadding)
+    val dy = (currentRange._2 - currentRange._1) / (jMax - topPadding)
+
+    if (zRange._2 - zRange._1 == 0 && !zRanges.contains(plotIndex)) {
+      // we will need to derive zRange
+      val xRange = leftPadding to iMax
+      val yRange = topPadding to jMax
+      // TODO: Reuse "data" for plotting
+      val data: Array[Array[Double]] = Array.ofDim[Double](xRange.size, yRange.size)
+      var minZ = Double.MaxValue
+      var maxZ = Double.MinValue
+      for (i <- leftPadding to iMax; j <- topPadding to jMax) {
+        val x = currentDomain._1 + (i - leftPadding) * dx
+        val y = currentRange._2 - (j - topPadding) * dy
+        if (inDomain(x, y)) {
+          val z = zFunction(x, y)
+          data(i - leftPadding)(j - topPadding) = z
+          if (minZ > z) minZ = z
+          if (maxZ < z) maxZ = z
+        }
+      }
+      zRanges.put(plotIndex, (minZ, maxZ))
+    }
+    val realZRange = if (zRanges.containsKey(plotIndex))
+      zRanges.get(plotIndex)
+    else
+      zRange
+    val zLen = realZRange._2 - realZRange._1
+
+    def toUnit(z: Double): Double = (z - realZRange._1) / zLen
+
+    for (i <- leftPadding to iMax; j <- topPadding to jMax) {
+      val x = currentDomain._1 + (i - leftPadding) * dx
+      val y = currentRange._2 - (j - topPadding) * dy
+      if (inDomain(x, y)) {
+        val color = colorMap(toUnit(zFunction(x, y)))
+        image.setRGB(i, j, color.getRGB)
+      }
+    }
+  }
+}

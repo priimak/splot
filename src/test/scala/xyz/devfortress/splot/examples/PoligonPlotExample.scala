@@ -97,5 +97,3 @@ object PoligonPlotExample {
   }
 }
 
-//    fig.save(s"/Users/dmitripriimak/personal/splot/docs/docs/Examples/texas-4.png")
-//    fig.close()

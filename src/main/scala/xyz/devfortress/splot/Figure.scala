@@ -1,6 +1,5 @@
 package xyz.devfortress.splot
 
-import java.awt.Color.WHITE
 import java.awt.event._
 import java.awt.image.BufferedImage
 import java.awt.{Font, _}
@@ -31,22 +30,26 @@ import scala.math.{max, min}
  *                     true however that can slow down plotting data sets are very large, in which case you may want
  *                     to set this value to false.
  */
-class Figure(
-      val name: String = "Figure",
-      val bgcolor: Color = Color.WHITE,
-      val leftPadding: Int = 50,
-      val rightPadding: Int = 50,
-      val topPadding: Int = 50,
-      val bottomPadding: Int = 50,
-      val domain: Option[(Double, Double)] = None,
-      val range: Option[(Double, Double)] = None,
-      val xTicks: (Double, Double) => Seq[(Double, String)] = Ticks.ticks10,
-      val yTicks: (Double, Double) => Seq[(Double, String)] = Ticks.ticks10,
-      val title: String = "",
-      val titleFont: Font = Font.decode("Times-20"),
-      val antialiasing: Boolean = true,
-      val showGrid: Boolean = false,
-      val gridColor: Color = new Color(0, 0, 0, 50)
+case class Figure(
+      name: String = "Figure",
+      bgcolor: Color = Color.WHITE,
+      leftPadding: Int = 50,
+      rightPadding: Int = 50,
+      topPadding: Int = 50,
+      bottomPadding: Int = 50,
+      domain: Option[(Double, Double)] = None,
+      range: Option[(Double, Double)] = None,
+      xTicks: (Double, Double) => Seq[(Double, String)] = Ticks.ticks10,
+      yTicks: (Double, Double) => Seq[(Double, String)] = Ticks.ticks10,
+      title: String = "",
+      titleFont: Font = Font.decode("Times-20"),
+      antialiasing: Boolean = true,
+      showGrid: Boolean = false,
+      gridPlotter: (DrawingContext, Seq[Int], Seq[Int]) => Unit = Grid.DEFAULT_GRID_PLOTTER,
+      borderPlotter: DrawingContext => Unit = Border.DEFAULT_BORDER_PLOTTER,
+      titlePlotter: (DrawingContext, String, Font) => Unit = Title.DEFAULT_TITLE_PLOTTER,
+      xTicksPlotter: (DrawingContext, Seq[(Double, String)]) => Unit = Ticks.DEFAULT_XTICKS_PLOTTER,
+      yTicksPlotter: (DrawingContext, Seq[(Double, String)]) => Unit = Ticks.DEFAULT_YTICKS_PLOTTER
     ) extends CommonSPlotLibTrait {
   private var currentDomain: (Double, Double) = domain.getOrElse((0, 0))
   private var curentRange: (Double, Double) = range.getOrElse((0, 0))
@@ -196,7 +199,7 @@ class Figure(
     _makeImage(width, height, true)
   }
 
-  private def _makeImage(width: Int, height: Int, setRangeAndDomain: Boolean): SPlotImage = {
+  private def _makeImage(imageWidth: Int, imageHeight: Int, setRangeAndDomain: Boolean): SPlotImage = {
     if (setRangeAndDomain) {
       // set initial value for domain
       currentDomain = domain.getOrElse((plots.map(_.domain._1).min, plots.map(_.domain._2).max))
@@ -204,24 +207,21 @@ class Figure(
     }
 
     import java.awt.image.BufferedImage
-    val getWidth = width
-    val getHeight = height
-    val image = new BufferedImage(getWidth, getHeight, BufferedImage.TYPE_INT_ARGB)
-    val g2 = image.createGraphics()
+    val image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB)
+    val g2: Graphics2D = image.createGraphics()
     import g2._
 
-    g2.setBackground(bgcolor)
-    clearRect(0, 0, getWidth, getHeight)
+    setBackground(bgcolor)
+    clearRect(0, 0, imageWidth, imageHeight)
 
     if (antialiasing) {
-      import java.awt.RenderingHints
-      g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+      setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
     }
 
     val domainWidth = currentDomain._2 - currentDomain._1
     val rangeWidth = curentRange._2 - curentRange._1
-    val plotWidth = getWidth - leftPadding - rightPadding
-    val plotHeight = getHeight - bottomPadding - topPadding
+    val plotWidth = imageWidth - leftPadding - rightPadding
+    val plotHeight = imageHeight - bottomPadding - topPadding
     val verticalOffset = topPadding + plotHeight
     val horizontalScaleFactor = plotWidth / domainWidth
     val verticalScaleFactor = plotHeight / rangeWidth
@@ -230,151 +230,42 @@ class Figure(
 
     def yScale(y: Double): Int = (verticalOffset - (y - curentRange._1) * verticalScaleFactor).toInt
 
-    plots.zipWithIndex.foreach(p => {
-      val idx = p._2
-      p._1 match {
-        case LinePlot(data, color, lineWidth) =>
-          setColor(color)
-          setStroke(new BasicStroke(lineWidth))
-          data.zip(data.tail).foreach(p2 => {
-            drawLine(xScale(p2._1._1), yScale(p2._1._2), xScale(p2._2._1), yScale(p2._2._2))
-          })
-        case PointPlot(data, pointSize, color, pointType) =>
-          setColor(color)
-          setStroke(new BasicStroke(1))
-          val halfSize = pointSize / 2
-          data.foreach(point => {
-            pointType.drawAt((xScale(point._1), yScale(point._2)), pointSize, halfSize, g2)
-          })
-        case Shape(data, color, lineWidth, fillColor) =>
-          val onScreenXY = data.map(xy => (xScale(xy._1), yScale(xy._2))).unzip
-          if (fillColor.isDefined) {
-            setColor(fillColor.get)
-            fillPolygon(onScreenXY._1.toArray, onScreenXY._2.toArray, data.size)
-          }
-          if (lineWidth > 0) {
-            setColor(color)
-            setStroke(new BasicStroke(lineWidth))
-            drawPolygon(onScreenXY._1.toArray, onScreenXY._2.toArray, data.size)
-          }
-        case ZPointPlot(data, zValues, pointSize, colorMap, pointType) =>
-          setStroke(new BasicStroke(1))
-          val halfSize = pointSize / 2
-          data.zip(zValues).foreach(point => {
-            setColor(colorMap(point._2))
-            pointType.drawAt((xScale(point._1._1), yScale(point._1._2)), pointSize, halfSize, g2)
-          })
-        case ZMapPlot(zFunction, xDomain, yDomain, zRange, colorMap, inDomain) =>
-          val iMax = getWidth - rightPadding
-          val jMax = getHeight - bottomPadding
-          val dx = (currentDomain._2 - currentDomain._1) / (iMax - leftPadding)
-          val dy = (curentRange._2 - curentRange._1) / (jMax - topPadding)
+    val drawingContext = DrawingContext(
+      g2, xScale, yScale, imageWidth, imageHeight,
+      rightPadding, leftPadding, topPadding, bottomPadding,
+      currentDomain, curentRange, zRanges, image
+    )
+    plots.zipWithIndex.foreach(p => p._1.draw(drawingContext, p._2))
 
-          if (zRange._2 - zRange._1 == 0 && !zRanges.contains(idx)) {
-            // we will need to derive zRange
-            val xRange = leftPadding to iMax
-            val yRange = topPadding to jMax
-            // TODO: Reuse "data" for plotting
-            val data: Array[Array[Double]] = Array.ofDim[Double](xRange.size, yRange.size)
-            var minZ = Double.MaxValue
-            var maxZ = Double.MinValue
-            for (i <- leftPadding to iMax; j <- topPadding to jMax) {
-              val x = currentDomain._1 + (i - leftPadding) * dx
-              val y = curentRange._2 - (j - topPadding) * dy
-              if (inDomain(x, y)) {
-                val z = zFunction(x, y)
-                data(i - leftPadding)(j - topPadding) = z
-                if (minZ > z) minZ = z
-                if (maxZ < z) maxZ = z
-              }
-            }
-            zRanges.put(idx, (minZ, maxZ))
-          }
-          val realZRange = if (zRanges.containsKey(idx))
-            zRanges.get(idx)
-          else
-            zRange
-          val zLen = realZRange._2 - realZRange._1
-          def toUnit(z: Double): Double = (z - realZRange._1) / zLen
-          for (i <- leftPadding to iMax; j <- topPadding to jMax) {
-            val x = currentDomain._1 + (i - leftPadding) * dx
-            val y = curentRange._2 - (j - topPadding) * dy
-            if (inDomain(x, y)) {
-              val color = colorMap(toUnit(zFunction(x, y)))
-              image.setRGB(i, j, color.getRGB)
-            }
-          }
-        case _ => throw new IllegalArgumentException
-      }
-    })
-
-    // draw white space around display box
-    clearRect(0, 0, getWidth, topPadding)
-    clearRect(0, 0, leftPadding, getHeight)
-    clearRect(0, getHeight - bottomPadding, getWidth, bottomPadding)
-    clearRect(getWidth - rightPadding, 0, rightPadding, getHeight)
+    // Draw white space around display box.
+    clearRect(0, 0, imageWidth, topPadding)
+    clearRect(0, 0, leftPadding, imageHeight)
+    clearRect(0, imageHeight - bottomPadding, imageWidth, bottomPadding)
+    clearRect(imageWidth - rightPadding, 0, rightPadding, imageHeight)
 
     // draw bounding box/axis
-    setColor(Color.BLACK)
-    setStroke(new BasicStroke(2))
-    drawRect(leftPadding, topPadding, plotWidth, plotHeight)
+    borderPlotter(drawingContext)
 
     // Draw x-ticks.
-    val bottomYPos = plotHeight + topPadding
-    for (tick <- xTicks(currentDomain._1, currentDomain._2)) {
-      val xPos = xScale(tick._1)
-      val tickYEnd = bottomYPos + 7
-      drawLine(xPos, bottomYPos, xPos, tickYEnd)
-      drawXCenteredString(g2, tick._2, xPos, tickYEnd + 12)
-      if (showGrid) {
-        val savedStroke = getStroke
-        val saveColor = getColor
-        setStroke(new BasicStroke(1))
-        setColor(gridColor)
-        drawLine(xPos, topPadding, xPos, topPadding + plotHeight)
-        setStroke(savedStroke)
-        setColor(saveColor)
-      }
-    }
+    val xticks = xTicks(currentDomain._1, currentDomain._2)
+    xTicksPlotter(drawingContext, xticks)
 
     // Draw y-ticks.
-    val origTransformation = g2.getTransform
-    for (tick <- yTicks(curentRange._1, curentRange._2)) {
-      val yPos = yScale(tick._1)
-      drawLine(leftPadding - 7, yPos, leftPadding, yPos)
-      g2.rotate(-Math.PI / 2, leftPadding - 12, yPos)
-      drawXCenteredString(g2, tick._2, leftPadding - 12, yPos)
-      g2.setTransform(origTransformation)
+    val yticks = yTicks(curentRange._1, curentRange._2)
+    yTicksPlotter(drawingContext, yticks)
 
-      if (showGrid) {
-        val savedStroke = getStroke
-        val saveColor = getColor
-        setStroke(new BasicStroke(1))
-        setColor(gridColor)
-        drawLine(leftPadding, yPos, plotWidth + leftPadding, yPos)
-        setStroke(savedStroke)
-        setColor(saveColor)
-      }
+    if (showGrid) {
+      gridPlotter(drawingContext, xticks.map(x => xScale(x._1)), yticks.map(y => yScale(y._1)))
     }
-
 
     // Draw labels.
     for (label <- labels) {
       label.draw(g2, (xScale(label.x), yScale(label.y)))
     }
 
-    // Draw title if any
-    if (title != "") {
-      val savedFont = g2.getFont
-      g2.setFont(titleFont)
-      val fontMetrics = g2.getFontMetrics()
-      g2.drawString(
-        title,
-        (plotWidth + leftPadding + rightPadding - fontMetrics.stringWidth(title)) / 2,
-        topPadding - fontMetrics.getHeight
-      )
-      g2.setFont(savedFont)
-    }
+    // Draw title
+    titlePlotter(drawingContext, title, titleFont)
+
     new SPlotImage(image)
   }
 
@@ -616,22 +507,3 @@ class PlotPopUpMenu(parent: JPanel, figure: Figure, savedDir: AtomicReference[St
   add(about)
 }
 
-object Figure {
-  def apply(name: String = "Figure",
-            bgcolor: Color = WHITE,
-            leftPadding: Int = 50,
-            rightPadding: Int = 50,
-            bottomPadding: Int = 50,
-            topPadding: Int = 50,
-            domain: Option[(Double, Double)] = None,
-            range: Option[(Double, Double)] = None,
-            xTicks: (Double, Double) => Seq[(Double, String)] = Ticks.ticks10,
-            yTicks: (Double, Double) => Seq[(Double, String)] = Ticks.ticks10,
-            title: String = "Figure",
-            titleFont: Font = Font.decode("Times-20"),
-            antialiasing: Boolean = true,
-            showGrid: Boolean = false): Figure =
-    new Figure(name, bgcolor, leftPadding, rightPadding, topPadding, bottomPadding, domain, range, xTicks, yTicks,
-      antialiasing = antialiasing, title = title, titleFont = titleFont, showGrid = showGrid
-    )
-}

@@ -1,5 +1,7 @@
 package xyz.devfortress.splot
 
+import java.awt.{BasicStroke, Color, Font, Stroke}
+
 class Ticks(ticks: Seq[(Double, String)]) extends ((Double, Double) => Seq[(Double, String)]) {
 
   override def apply(min: Double, max: Double): Seq[(Double, String)] =
@@ -7,7 +9,10 @@ class Ticks(ticks: Seq[(Double, String)]) extends ((Double, Double) => Seq[(Doub
 }
 
 object Ticks {
-  def round(d: Double, decimalPlace: Int) =
+  val DEFAULT_XTICKS_PLOTTER: (DrawingContext, Seq[(Double, String)]) => Unit = xTicksPlotter()
+  val DEFAULT_YTICKS_PLOTTER: (DrawingContext, Seq[(Double, String)]) => Unit = yTicksPlotter()
+
+  private def round(d: Double, decimalPlace: Int) =
     BigDecimal(d).setScale(decimalPlace, BigDecimal.RoundingMode.FLOOR).doubleValue()
 
   /**
@@ -33,4 +38,65 @@ object Ticks {
   def apply(ticks: Double*): Ticks = new Ticks(ticks.map(t => (t, s"$t")))
 
   def apply(ticks: Range): Ticks = new Ticks(ticks.map(t => (t.toDouble, s"$t")))
+
+  def xTicksPlotter(
+      color: Color = Color.BLACK,
+      tickLength: Int = 5,
+      stroke: Stroke = new BasicStroke(2),
+      font: Font = Font.decode("Monospaced-13"))(ctx: DrawingContext, ticks: Seq[(Double, String)]): Unit = {
+    import ctx._
+    val bottomYPos = imageHeight - bottomPadding
+
+    val savedFont = g2.getFont
+    val savedStroke = g2.getStroke
+    val savedColor = g2.getColor
+
+    g2.setFont(font)
+    g2.setColor(color)
+    g2.setStroke(stroke)
+    val metrics = g2.getFontMetrics()
+
+    ticks.foreach {
+      case (x, text) =>
+        val xPos = x2i(x)
+        val tickYEnd = bottomYPos + tickLength
+        g2.drawLine(xPos, bottomYPos, xPos, tickYEnd)
+        g2.drawString(text, xPos - metrics.stringWidth(text) / 2, tickYEnd + metrics.getHeight)
+    }
+
+    g2.setColor(savedColor)
+    g2.setStroke(savedStroke)
+    g2.setFont(savedFont)
+  }
+
+  def yTicksPlotter(
+    color: Color = Color.BLACK,
+    tickLength: Int = 5,
+    stroke: Stroke = new BasicStroke(2),
+    font: Font = Font.decode("Monospaced-13"))(ctx: DrawingContext, ticks: Seq[(Double, String)]): Unit = {
+    import ctx._
+
+    val savedFont = g2.getFont
+    val savedStroke = g2.getStroke
+    val savedColor = g2.getColor
+    val origTransformation = g2.getTransform
+
+    g2.setFont(font)
+    g2.setColor(color)
+    g2.setStroke(stroke)
+    val metrics = g2.getFontMetrics()
+
+    ticks.foreach {
+      case (y, text) =>
+        val yPos = y2i(y)
+        g2.drawLine(leftPadding - tickLength, yPos, leftPadding, yPos)
+        g2.rotate(-Math.PI / 2, leftPadding - metrics.getHeight, yPos)
+        g2.drawString(text, leftPadding - metrics.getHeight - metrics.stringWidth(text) / 2, yPos)
+        g2.setTransform(origTransformation)
+    }
+
+    g2.setColor(savedColor)
+    g2.setStroke(savedStroke)
+    g2.setFont(savedFont)
+  }
 }

@@ -7,7 +7,7 @@ import xyz.devfortress.splot._
 
 object ScatterPlotExample {
   def main(args: Array[String]): Unit = {
-    val fig = new Figure(
+    val fig = Figure(
       xTicks = Ticks(-6 to 6), yTicks = Ticks(-5 to 5),
       domain = (-6, 6), range = (-5, 5),
       title = "Overlapping Gaussian Distributions",
