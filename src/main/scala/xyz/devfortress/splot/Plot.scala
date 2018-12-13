@@ -263,7 +263,7 @@ final case class ZMapPlot(
  */
 case class Label(text: String, x: Double, y: Double, font: Font = Font.getFont(Font.SANS_SERIF),
     color: Color = Color.BLACK, anchor: Anchor = Anchor.LEFT_LOWER) extends PlotElement {
-  def draw(g2: Graphics2D, atPosition: (Double, Double)): Unit = {
+  def draw(g2: Graphics2D, atPosition: (Int, Int)): Unit = {
     val savedFont = g2.getFont
     val savedColor = g2.getColor
     g2.setFont(font)
