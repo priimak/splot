@@ -45,16 +45,16 @@ case class Figure(
       titleFont: Font = Font.decode("Times-20"),
       antialiasing: Boolean = true,
       showGrid: Boolean = false,
+      backgroudPlotter: (DrawingContext, Color) => Unit = Background.DEFAULT_BACKGROUND_PLOTTER,
       gridPlotter: (DrawingContext, Seq[Int], Seq[Int]) => Unit = Grid.DEFAULT_GRID_PLOTTER,
-      borderPlotter: DrawingContext => Unit = Border.DEFAULT_BORDER_PLOTTER,
+      borderPlotter: (DrawingContext, Color) => Unit = Border.DEFAULT_BORDER_PLOTTER,
       titlePlotter: (DrawingContext, String, Font) => Unit = Title.DEFAULT_TITLE_PLOTTER,
       xTicksPlotter: (DrawingContext, Seq[(Double, String)]) => Unit = Ticks.DEFAULT_XTICKS_PLOTTER,
       yTicksPlotter: (DrawingContext, Seq[(Double, String)]) => Unit = Ticks.DEFAULT_YTICKS_PLOTTER
     ) extends CommonSPlotLibTrait {
   private var currentDomain: (Double, Double) = domain.getOrElse((0, 0))
   private var curentRange: (Double, Double) = range.getOrElse((0, 0))
-  private val plots: mutable.MutableList[Plot] = mutable.MutableList()
-  private val labels: mutable.MutableList[Label] = mutable.MutableList()
+  private val plotElements: mutable.MutableList[PlotElement] = mutable.MutableList()
   val currentImage = new AtomicReference[BufferedImage]()
   private val selectingForZoom = new AtomicBoolean(false)
   private val frame: AtomicReference[JFrame] = new AtomicReference[JFrame]()
@@ -69,9 +69,7 @@ case class Figure(
   /**
    * Add new plot to this figure
    */
-  def add(plot: Plot): Unit = plots += plot
-
-  def add(label: Label): Unit = labels += label
+  def add(plotElement: PlotElement): Unit = plotElements += plotElement
 
   /**
    * Convenience function that can be used instead of fig += LinePlot(...). Adds line plot.
@@ -81,7 +79,7 @@ case class Figure(
    * @param lw    line width.
    */
   def plot[C: ColorLike, D: SeqOfDoubleTuples](data: Seq[D], color: C = Color.BLACK, lw: Int = 1): Unit =
-    plots += LinePlot(SeqOfDoubleTuples[D].asDoubleSeq(data), ColorLike[C].asColor(color), lw)
+    plotElements += LinePlot(SeqOfDoubleTuples[D].asDoubleSeq(data), ColorLike[C].asColor(color), lw)
 
   /**
    * Convenience function that can be used instead of fig += PointPlot(...). Adds scatter plot.
@@ -93,7 +91,7 @@ case class Figure(
    */
   def scatter[P: PointTypeLike, C: ColorLike, D: SeqOfDoubleTuples](data: Seq[D], ps: Int = 3, color: C = Color.BLACK,
         pt: P = PointType.Dot): Unit =
-    plots += PointPlot(
+    plotElements += PointPlot(
       SeqOfDoubleTuples[D].asDoubleSeq(data),
       pointSize = ps,
       color = ColorLike[C].asColor(color),
@@ -112,7 +110,7 @@ case class Figure(
    */
   def zscatter[P: PointTypeLike, D: SeqOfDoubleTuples](data: Seq[D], zValues: Seq[Double], ps: Int = 5,
     colorMap: Double => Color = colormaps.viridis, pt: P = PointType.Dot): Unit =
-    plots += ZPointPlot(
+    plotElements += ZPointPlot(
       SeqOfDoubleTuples[D].asDoubleSeq(data),
       zValues,
       pointSize = ps,
@@ -140,7 +138,7 @@ case class Figure(
   def map(f: (Double, Double) => Double, xDomain: (Double, Double), yDomain: (Double, Double),
     colorMap: Double => Color = colormaps.viridis, zRange: (Double, Double) = (0, 0),
     inDomain: (Double, Double) => Boolean = derivedDomain): Unit =
-    plots += ZMapPlot(
+    plotElements += ZMapPlot(
       zFunction = f, domain = xDomain, range = yDomain, zRange = zRange, colorMap = colorMap,
       inDomain =
         if (inDomain.equals(derivedDomain))
@@ -172,7 +170,7 @@ case class Figure(
     val maybeColor = SomethingLikeColor[S].asSomething(fillColor)
     val xAnchor = integral.toDouble(anchor._1)
     val yAnchor = integral.toDouble(anchor._2)
-    plots += Shape(
+    plotElements += Shape(
       Seq(
         (xAnchor, yAnchor),
         (xAnchor, yAnchor + height),
@@ -202,8 +200,14 @@ case class Figure(
   private def _makeImage(imageWidth: Int, imageHeight: Int, setRangeAndDomain: Boolean): SPlotImage = {
     if (setRangeAndDomain) {
       // set initial value for domain
-      currentDomain = domain.getOrElse((plots.map(_.domain._1).min, plots.map(_.domain._2).max))
-      curentRange = range.getOrElse((plots.map(_.range._1).min, plots.map(_.range._2).max))
+      currentDomain = domain.getOrElse((
+        plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).min,
+        plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).max
+      ))
+      curentRange = range.getOrElse((
+        plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).min,
+        plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).max
+      ))
     }
 
     import java.awt.image.BufferedImage
@@ -211,8 +215,6 @@ case class Figure(
     val g2: Graphics2D = image.createGraphics()
     import g2._
 
-    setBackground(bgcolor)
-    clearRect(0, 0, imageWidth, imageHeight)
 
     if (antialiasing) {
       setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
@@ -235,16 +237,17 @@ case class Figure(
       rightPadding, leftPadding, topPadding, bottomPadding,
       currentDomain, curentRange, zRanges, image
     )
-    plots.zipWithIndex.foreach(p => p._1.draw(drawingContext, p._2))
 
-    // Draw white space around display box.
-    clearRect(0, 0, imageWidth, topPadding)
-    clearRect(0, 0, leftPadding, imageHeight)
-    clearRect(0, imageHeight - bottomPadding, imageWidth, bottomPadding)
-    clearRect(imageWidth - rightPadding, 0, rightPadding, imageHeight)
+    backgroudPlotter(drawingContext, bgcolor)
+
+    // Draw all plot elements
+    plotElements.zipWithIndex.foreach(p => p._1 match {
+      case plt: Plot => plt.draw(drawingContext, p._2)
+      case label: Label => label.draw(g2, (xScale(label.x), yScale(label.y)))
+    })
 
     // draw bounding box/axis
-    borderPlotter(drawingContext)
+    borderPlotter(drawingContext, bgcolor)
 
     // Draw x-ticks.
     val xticks = xTicks(currentDomain._1, currentDomain._2)
@@ -256,11 +259,6 @@ case class Figure(
 
     if (showGrid) {
       gridPlotter(drawingContext, xticks.map(x => xScale(x._1)), yticks.map(y => yScale(y._1)))
-    }
-
-    // Draw labels.
-    for (label <- labels) {
-      label.draw(g2, (xScale(label.x), yScale(label.y)))
     }
 
     // Draw title
@@ -284,8 +282,14 @@ case class Figure(
 
   private def _show(dimension: Dimension): Unit = {
     // set initial value for domain
-    currentDomain = domain.getOrElse((plots.map(_.domain._1).min, plots.map(_.domain._2).max))
-    curentRange = range.getOrElse((plots.map(_.range._1).min, plots.map(_.range._2).max))
+    currentDomain = domain.getOrElse(
+      plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).min,
+      plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).max
+    )
+    curentRange = range.getOrElse(
+      plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).min,
+      plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).max
+    )
 
     originalDomain.compareAndSet(null, currentDomain)
     originalRange.compareAndSet(null, curentRange)
@@ -409,8 +413,14 @@ case class Figure(
             e.getKeyChar match {
               case 'q' => theFrame.dispose() // close whole window on just pressing 'q'
               case 'r' => // reset zoom
-                currentDomain = domain.getOrElse((plots.map(_.domain._1).min, plots.map(_.domain._2).max))
-                curentRange = range.getOrElse((plots.map(_.range._1).min, plots.map(_.range._2).max))
+                currentDomain = domain.getOrElse(
+                  plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).min,
+                  plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).max
+                )
+                curentRange = range.getOrElse(
+                  plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).min,
+                  plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).max
+                )
                 resetP.set(true)
                 plotPanel.repaint()
               case _ => // NOOP
@@ -506,4 +516,3 @@ class PlotPopUpMenu(parent: JPanel, figure: Figure, savedDir: AtomicReference[St
   )
   add(about)
 }
-
