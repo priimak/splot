@@ -17,7 +17,7 @@ object SimplePlotExample {
       xTicks = Ticks(0 to 50 by 2),
       domain = (0, 20),
       title = "Simple Plot Example",
-      bgcolor = Color.LIGHT_GRAY
+      bgColor = Color.LIGHT_GRAY
     )
 
     // Plot heat map like plot of (x,y)=>z function that.

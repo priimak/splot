@@ -17,7 +17,7 @@ import scala.math.{max, min}
  * Figure class to which plots can be added and later displayed.
  *
  * @param name name of the figure that will appear created window
- * @param bgcolor background color for the entire frame where plot will be displayed.
+ * @param bgColor background color for the entire frame where plot will be displayed.
  * @param leftPadding offset from the left edge of the frame in pixels.
  * @param rightPadding offset from the right edge of the frame in pixels.
  * @param bottomPadding offset from the bottom edge of the frame in pixels.
@@ -32,28 +32,32 @@ import scala.math.{max, min}
  */
 case class Figure(
       name: String = "Figure",
-      bgcolor: Color = Color.WHITE,
+      title: String = "",
+      titleFont: Font = Font.decode("Times-20"),
+      xLabel: String = "",
+      yLabel: String = "",
+      bgColor: Color = Color.WHITE,
       leftPadding: Int = 50,
       rightPadding: Int = 50,
       topPadding: Int = 50,
       bottomPadding: Int = 50,
+      antialiasing: Boolean = true,
+      showGrid: Boolean = false,
       domain: Option[(Double, Double)] = None,
       range: Option[(Double, Double)] = None,
       xTicks: (Double, Double) => Seq[(Double, String)] = Ticks.ticks10,
       yTicks: (Double, Double) => Seq[(Double, String)] = Ticks.ticks10,
-      title: String = "",
-      titleFont: Font = Font.decode("Times-20"),
-      antialiasing: Boolean = true,
-      showGrid: Boolean = false,
       backgroudPlotter: (DrawingContext, Color) => Unit = Background.DEFAULT_BACKGROUND_PLOTTER,
       gridPlotter: (DrawingContext, Seq[Int], Seq[Int]) => Unit = Grid.DEFAULT_GRID_PLOTTER,
+      xLabelPlotter: (DrawingContext, Int, String) => Unit = XYLabels.DEFAULT_XLABEL_PLOTTER,
+      yLabelPlotter: (DrawingContext, Int, String) => Unit = XYLabels.DEFAULT_YLABEL_PLOTTER,
       borderPlotter: (DrawingContext, Color) => Unit = Border.DEFAULT_BORDER_PLOTTER,
       titlePlotter: (DrawingContext, String, Font) => Unit = Title.DEFAULT_TITLE_PLOTTER,
-      xTicksPlotter: (DrawingContext, Seq[(Double, String)]) => Unit = Ticks.DEFAULT_XTICKS_PLOTTER,
-      yTicksPlotter: (DrawingContext, Seq[(Double, String)]) => Unit = Ticks.DEFAULT_YTICKS_PLOTTER
+      xTicksPlotter: (DrawingContext, Seq[(Double, String)]) => Int = Ticks.DEFAULT_XTICKS_PLOTTER,
+      yTicksPlotter: (DrawingContext, Seq[(Double, String)]) => Int = Ticks.DEFAULT_YTICKS_PLOTTER
     ) extends CommonSPlotLibTrait {
   private var currentDomain: (Double, Double) = domain.getOrElse((0, 0))
-  private var curentRange: (Double, Double) = range.getOrElse((0, 0))
+  private var currentRange: (Double, Double) = range.getOrElse((0, 0))
   private val plotElements: mutable.MutableList[PlotElement] = mutable.MutableList()
   val currentImage = new AtomicReference[BufferedImage]()
   private val selectingForZoom = new AtomicBoolean(false)
@@ -197,17 +201,18 @@ case class Figure(
     _makeImage(width, height, true)
   }
 
+  private def getBoundsFromPlots(bounds: Option[(Double, Double)], extractBound: Plot => (Double, Double))= {
+    bounds.getOrElse((
+      plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(extractBound(_)._1).min,
+      plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(extractBound(_)._2).max
+    ))
+  }
+
   private def _makeImage(imageWidth: Int, imageHeight: Int, setRangeAndDomain: Boolean): SPlotImage = {
     if (setRangeAndDomain) {
       // set initial value for domain
-      currentDomain = domain.getOrElse((
-        plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).min,
-        plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).max
-      ))
-      curentRange = range.getOrElse((
-        plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).min,
-        plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).max
-      ))
+      currentDomain = getBoundsFromPlots(domain, _.domain)
+      currentRange = getBoundsFromPlots(range, _.range)
     }
 
     import java.awt.image.BufferedImage
@@ -221,7 +226,7 @@ case class Figure(
     }
 
     val domainWidth = currentDomain._2 - currentDomain._1
-    val rangeWidth = curentRange._2 - curentRange._1
+    val rangeWidth = currentRange._2 - currentRange._1
     val plotWidth = imageWidth - leftPadding - rightPadding
     val plotHeight = imageHeight - bottomPadding - topPadding
     val verticalOffset = topPadding + plotHeight
@@ -230,15 +235,15 @@ case class Figure(
 
     def xScale(x: Double): Int = (leftPadding + (x - currentDomain._1) * horizontalScaleFactor).toInt
 
-    def yScale(y: Double): Int = (verticalOffset - (y - curentRange._1) * verticalScaleFactor).toInt
+    def yScale(y: Double): Int = (verticalOffset - (y - currentRange._1) * verticalScaleFactor).toInt
 
     val drawingContext = DrawingContext(
       g2, xScale, yScale, imageWidth, imageHeight,
       rightPadding, leftPadding, topPadding, bottomPadding,
-      currentDomain, curentRange, zRanges, image
+      currentDomain, currentRange, zRanges, image
     )
 
-    backgroudPlotter(drawingContext, bgcolor)
+    backgroudPlotter(drawingContext, bgColor)
 
     // Draw all plot elements
     plotElements.zipWithIndex.foreach(p => p._1 match {
@@ -247,19 +252,22 @@ case class Figure(
     })
 
     // draw bounding box/axis
-    borderPlotter(drawingContext, bgcolor)
+    borderPlotter(drawingContext, bgColor)
 
     // Draw x-ticks.
     val xticks = xTicks(currentDomain._1, currentDomain._2)
-    xTicksPlotter(drawingContext, xticks)
+    val xTicksVerticalDistance = if (xticks.isEmpty) 0 else xTicksPlotter(drawingContext, xticks)
 
     // Draw y-ticks.
-    val yticks = yTicks(curentRange._1, curentRange._2)
-    yTicksPlotter(drawingContext, yticks)
+    val yticks = yTicks(currentRange._1, currentRange._2)
+    val yTicksHorizontalDistance = if (yticks.isEmpty) 0 else yTicksPlotter(drawingContext, yticks)
 
     if (showGrid) {
       gridPlotter(drawingContext, xticks.map(x => xScale(x._1)), yticks.map(y => yScale(y._1)))
     }
+
+    xLabelPlotter(drawingContext, xTicksVerticalDistance, xLabel)
+    yLabelPlotter(drawingContext, yTicksHorizontalDistance, yLabel)
 
     // Draw title
     titlePlotter(drawingContext, title, titleFont)
@@ -281,18 +289,12 @@ case class Figure(
   }
 
   private def _show(dimension: Dimension): Unit = {
-    // set initial value for domain
-    currentDomain = domain.getOrElse(
-      plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).min,
-      plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).max
-    )
-    curentRange = range.getOrElse(
-      plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).min,
-      plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).max
-    )
+    // set initial value for domain and range
+    currentDomain = getBoundsFromPlots(domain, _.domain)
+    currentRange = getBoundsFromPlots(range, _.range)
 
     originalDomain.compareAndSet(null, currentDomain)
-    originalRange.compareAndSet(null, curentRange)
+    originalRange.compareAndSet(null, currentRange)
 
     // selections points for rectangle used for zooming
     var selPoint1: java.awt.Point = new java.awt.Point(0, 0)
@@ -314,7 +316,7 @@ case class Figure(
           originalImage.compareAndSet(null, image)
           currentImage.set(image)
           val domainForDisplay = ("%.3G".format(currentDomain._1), "%.3G".format(currentDomain._2))
-          val rangeForDisplay = ("%.3G".format(curentRange._1), "%.3G".format(curentRange._2))
+          val rangeForDisplay = ("%.3G".format(currentRange._1), "%.3G".format(currentRange._2))
           frame.get().setTitle(s"$name domain=$domainForDisplay range=$rangeForDisplay")
 
         } else if (selectingForZoom.get() && currentImage.get() != null) {
@@ -331,18 +333,18 @@ case class Figure(
 
         } else {
           val domainWidth = currentDomain._2 - currentDomain._1
-          val rangeWidth = curentRange._2 - curentRange._1
+          val rangeWidth = currentRange._2 - currentRange._1
 
           val image = _makeImage(getWidth, getHeight, false).image
           currentImage.set(image)
           g.drawImage(image, 0, 0, this)
 
-          if (curentRange == originalRange.get() && currentDomain == originalDomain.get()) {
+          if (currentRange == originalRange.get() && currentDomain == originalDomain.get()) {
             originalImage.compareAndSet(null, image)
           }
           lastFrameDimentions = (getWidth, getHeight)
           val domainForDisplay = ("%.3G".format(currentDomain._1), "%.3G".format(currentDomain._2))
-          val rangeForDisplay = ("%.3G".format(curentRange._1), "%.3G".format(curentRange._2))
+          val rangeForDisplay = ("%.3G".format(currentRange._1), "%.3G".format(currentRange._2))
           frame.get().setTitle(s"$name domain=$domainForDisplay range=$rangeForDisplay")
         }
         if (buildingFigure.getCount > 0) {
@@ -381,12 +383,12 @@ case class Figure(
             (currentDomain._2 - currentDomain._1) + currentDomain._1
 
           val newRange1 = (plotPanel.getHeight - selPoint1.y - bottomPadding.toDouble) /
-            (plotPanel.getHeight - bottomPadding - topPadding) * (curentRange._2 - curentRange._1) + curentRange._1
+            (plotPanel.getHeight - bottomPadding - topPadding) * (currentRange._2 - currentRange._1) + currentRange._1
           val newRange2 = (plotPanel.getHeight - e.getY - bottomPadding.toDouble) /
-            (plotPanel.getHeight - bottomPadding - topPadding) * (curentRange._2 - curentRange._1) + curentRange._1
+            (plotPanel.getHeight - bottomPadding - topPadding) * (currentRange._2 - currentRange._1) + currentRange._1
 
           currentDomain = (min(newDomain1, newDomain2), max(newDomain1, newDomain2))
-          curentRange = (min(newRange1, newRange2), max(newRange1, newRange2))
+          currentRange = (min(newRange1, newRange2), max(newRange1, newRange2))
 
           selPoint2 = None
           selectingForZoom.set(false)
@@ -413,14 +415,8 @@ case class Figure(
             e.getKeyChar match {
               case 'q' => theFrame.dispose() // close whole window on just pressing 'q'
               case 'r' => // reset zoom
-                currentDomain = domain.getOrElse(
-                  plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).min,
-                  plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).max
-                )
-                curentRange = range.getOrElse(
-                  plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).min,
-                  plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(_.domain._1).max
-                )
+                currentDomain = getBoundsFromPlots(domain, _.domain)
+                currentRange = getBoundsFromPlots(range, _.range)
                 resetP.set(true)
                 plotPanel.repaint()
               case _ => // NOOP
