@@ -6,6 +6,8 @@ import scala.math.{max, min}
 
 sealed trait PlotElement
 
+final case class CompositePlotElement(plotElements: Seq[Either[Plot, Label]]) extends PlotElement
+
 trait Plot extends PlotElement with CommonSPlotLibTrait {
   /**
     * Domain, i.e. inclusive range along the x-axis.
@@ -203,6 +205,7 @@ final case class ZMapPlot(
   colorMap: Double => Color = colormaps.viridis,
   override val inDomain: (Double, Double) => Boolean
 ) extends Plot {
+  var cachedZRange = zRange
 
   override def draw(ctx: DrawingContext, plotIndex: Int): Unit = {
     import ctx._
@@ -211,30 +214,33 @@ final case class ZMapPlot(
     val dx = (currentDomain._2 - currentDomain._1) / (iMax - leftPadding)
     val dy = (currentRange._2 - currentRange._1) / (jMax - topPadding)
 
-    if (zRange._2 - zRange._1 == 0 && !zRanges.contains(plotIndex)) {
-      // we will need to derive zRange
-      val xRange = leftPadding to iMax
-      val yRange = topPadding to jMax
-      // TODO: Reuse "data" for plotting
-      val data: Array[Array[Double]] = Array.ofDim[Double](xRange.size, yRange.size)
-      var minZ = Double.MaxValue
-      var maxZ = Double.MinValue
-      for (i <- leftPadding to iMax; j <- topPadding to jMax) {
-        val x = currentDomain._1 + (i - leftPadding) * dx
-        val y = currentRange._2 - (j - topPadding) * dy
-        if (inDomain(x, y)) {
-          val z = zFunction(x, y)
-          data(i - leftPadding)(j - topPadding) = z
-          if (minZ > z) minZ = z
-          if (maxZ < z) maxZ = z
+
+    val realZRange = cachedZRange.synchronized {
+      if (cachedZRange._1 != cachedZRange._2) {
+        cachedZRange
+      } else {
+        // we will need to derive zRange
+        val xRange = leftPadding to iMax
+        val yRange = topPadding to jMax
+        // TODO: Reuse "data" for plotting
+        val data: Array[Array[Double]] = Array.ofDim[Double](xRange.size, yRange.size)
+        var minZ = Double.MaxValue
+        var maxZ = Double.MinValue
+        for (i <- leftPadding to iMax; j <- topPadding to jMax) {
+          val x = currentDomain._1 + (i - leftPadding) * dx
+          val y = currentRange._2 - (j - topPadding) * dy
+          if (inDomain(x, y)) {
+            val z = zFunction(x, y)
+            data(i - leftPadding)(j - topPadding) = z
+            if (minZ > z) minZ = z
+            if (maxZ < z) maxZ = z
+          }
         }
+        cachedZRange = (minZ, maxZ)
+        cachedZRange
       }
-      zRanges.put(plotIndex, (minZ, maxZ))
     }
-    val realZRange = if (zRanges.containsKey(plotIndex))
-      zRanges.get(plotIndex)
-    else
-      zRange
+
     val zLen = realZRange._2 - realZRange._1
 
     def toUnit(z: Double): Double = (z - realZRange._1) / zLen

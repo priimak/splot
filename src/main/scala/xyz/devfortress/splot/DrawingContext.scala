@@ -2,7 +2,6 @@ package xyz.devfortress.splot
 
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Class passed to Plot.draw(...) function for each plot to draw itself.
@@ -18,7 +17,6 @@ import java.util.concurrent.ConcurrentHashMap
  * @param bottomPadding Distance in pixels from the bottom edge of the plot area to the bottom of the figure/image.
  * @param currentDomain Domain of the in-plot x-coordinate values.
  * @param currentRange Range of the in-plot x-coordinate values.
- * @param zRanges
  * @param image BufferedImage on which drawing can take place.
  */
 final case class DrawingContext(
@@ -33,6 +31,5 @@ final case class DrawingContext(
   bottomPadding: Int,
   currentDomain: (Double, Double),
   currentRange: (Double, Double),
-  zRanges: ConcurrentHashMap[Int, (Double, Double)],
   image: BufferedImage
 )

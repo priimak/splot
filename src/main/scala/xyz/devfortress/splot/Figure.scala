@@ -4,8 +4,8 @@ import java.awt.event._
 import java.awt.image.BufferedImage
 import java.awt.{Font, _}
 import java.nio.file.Paths
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
-import java.util.concurrent.{ConcurrentHashMap, CountDownLatch}
 
 import javax.imageio.ImageIO
 import javax.swing.{JFrame, JOptionPane, JPanel}
@@ -54,7 +54,8 @@ case class Figure(
       borderPlotter: (DrawingContext, Color) => Unit = Border.DEFAULT_BORDER_PLOTTER,
       titlePlotter: (DrawingContext, String, Font) => Unit = Title.DEFAULT_TITLE_PLOTTER,
       xTicksPlotter: (DrawingContext, Seq[(Double, String)]) => Int = Ticks.DEFAULT_XTICKS_PLOTTER,
-      yTicksPlotter: (DrawingContext, Seq[(Double, String)]) => Int = Ticks.DEFAULT_YTICKS_PLOTTER
+      yTicksPlotter: (DrawingContext, Seq[(Double, String)]) => Int = Ticks.DEFAULT_YTICKS_PLOTTER,
+      g2creator: BufferedImage => Graphics2D = image => image.createGraphics() // exposed for testing
     ) extends CommonSPlotLibTrait {
   private var currentDomain: (Double, Double) = domain.getOrElse((0, 0))
   private var currentRange: (Double, Double) = range.getOrElse((0, 0))
@@ -67,7 +68,6 @@ case class Figure(
   private var lastFrameDimentions: (Int, Int) = (0, 0)
   private val originalDomain = new AtomicReference[(Double, Double)]()
   private val originalRange = new AtomicReference[(Double, Double)]()
-  private val zRanges = new ConcurrentHashMap[Int, (Double, Double)]()
   private val buildingFigure = new CountDownLatch(1)
 
   /**
@@ -174,19 +174,13 @@ case class Figure(
     val maybeColor = SomethingLikeColor[S].asSomething(fillColor)
     val xAnchor = integral.toDouble(anchor._1)
     val yAnchor = integral.toDouble(anchor._2)
-    plotElements += Shape(
-      Seq(
-        (xAnchor, yAnchor),
-        (xAnchor, yAnchor + height),
-        (xAnchor + width, yAnchor + height),
-        (xAnchor + width, yAnchor)
-      ),
+    plotElements += makeRectangle(
+      anchor = (xAnchor, yAnchor),
+      width = width, height = height,
       color = ColorLike[C].asColor(color),
-      lineWidth = lw,
-      fillColor = maybeColor match {
-        case Some(c) => Some(new Color(c.getRed, c.getGreen, c.getBlue, (alpha * 255).toInt))
-        case None => None
-      }
+      lw = lw,
+      fillColor = maybeColor,
+      alpha = alpha
     )
   }
 
@@ -207,30 +201,52 @@ case class Figure(
     if (data.size > 1) { // draw only if there are at least two data points
       val points: Seq[(Double, Double)] = SeqOfDoubleTuples[D].asDoubleSeq(data)
 
-      val p2 = points.zip(points.tail)
+      val p2s = points.zip(points.tail)
       val colorOfEdge = ColorLike[C].asColor(edgeColor)
       val colorOfFill = ColorLike[C].asColor(color)
-      for (p2 <- p2) {
-        rectangle(
+      val boxes: Seq[Left[Shape, Label]] = for (p2 <- p2s) yield {
+        Left(makeRectangle(
           anchor = (p2._1._1, 0.0),
           width = width(p2._2._1 - p2._1._1),
           height = p2._1._2,
-          color = colorOfEdge, fillColor = colorOfFill,
-          lw = edgeWith, alpha = alpha
-        )
+          color = colorOfEdge,
+          lw = edgeWith,
+          fillColor = Some(colorOfFill),
+          alpha = alpha
+        ))
       }
 
       // last rectangle will be of the same width as the one before last
-      val lastPair = p2.last
-      rectangle(
+      val lastPair = p2s.last
+      plotElements += CompositePlotElement(boxes ++ Seq(Left(makeRectangle(
         anchor = (lastPair._2._1, 0.0),
         width = width(lastPair._2._1 - lastPair._1._1),
         height = lastPair._2._2,
-        color = colorOfEdge, fillColor = colorOfFill,
+        color = colorOfEdge,
         lw = edgeWith,
+        fillColor = Some(colorOfFill),
         alpha = alpha
-      )
+      ))))
     }
+  }
+
+  private def makeRectangle(anchor: (Double, Double), width: Double, height: Double,
+    color: Color, lw: Int, fillColor: Option[Color], alpha: Double): Shape = {
+    assert(width > 0, "Width must be greated than 0.")
+    assert(height > 0, "Height must be greater than 0.")
+    assert(alpha > 0 && alpha <= 1, "Transparency value must be in range (0, 1].")
+    Shape(
+      Seq(
+        (anchor._1, anchor._2),                  (anchor._1, anchor._2 + height),
+        (anchor._1 + width, anchor._2 + height), (anchor._1 + width, anchor._2)
+      ),
+      color = color,
+      lineWidth = lw,
+      fillColor = fillColor match {
+        case Some(c) => Some(new Color(c.getRed, c.getGreen, c.getBlue, (alpha * 255).toInt))
+        case None => None
+      }
+    )
   }
 
   /**
@@ -245,10 +261,17 @@ case class Figure(
   }
 
   private def getBoundsFromPlots(bounds: Option[(Double, Double)], extractBound: Plot => (Double, Double))= {
-    bounds.getOrElse((
-      plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(extractBound(_)._1).min,
-      plotElements.filter(_.isInstanceOf[Plot]).map(_.asInstanceOf[Plot]).map(extractBound(_)._2).max
-    ))
+    bounds.getOrElse({
+      val elements = plotElements.flatMap({
+        case CompositePlotElement(ps) => ps.flatMap({
+          case Left(plt) => Seq(plt)
+          case Right(_) => Seq()
+        })
+        case plt: Plot => Seq(plt)
+        case _ => Seq()
+      })
+      (elements.map(extractBound(_)._1).min, elements.map(extractBound(_)._2).max)
+    })
   }
 
   private def _makeImage(imageWidth: Int, imageHeight: Int, setRangeAndDomain: Boolean): SPlotImage = {
@@ -260,7 +283,7 @@ case class Figure(
 
     import java.awt.image.BufferedImage
     val image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB)
-    val g2: Graphics2D = image.createGraphics()
+    val g2: Graphics2D = g2creator(image)
     import g2._
 
 
@@ -283,15 +306,22 @@ case class Figure(
     val drawingContext = DrawingContext(
       g2, xScale, yScale, imageWidth, imageHeight,
       rightPadding, leftPadding, topPadding, bottomPadding,
-      currentDomain, currentRange, zRanges, image
+      currentDomain, currentRange, image
     )
 
     backgroudPlotter(drawingContext, bgColor)
 
     // Draw all plot elements
-    plotElements.zipWithIndex.foreach(p => p._1 match {
+    plotElements.flatMap(p => p match {
+      case CompositePlotElement(plotElementsInComposite) => plotElementsInComposite.map {
+        case Left(plt) => plt
+        case Right(lbl) => lbl
+      }
+      case _ => Seq(p)
+    }).zipWithIndex.foreach(p => p._1 match {
       case plt: Plot => plt.draw(drawingContext, p._2)
       case label: Label => label.draw(g2, (xScale(label.x), yScale(label.y)))
+      case _ => throw new RuntimeException("Recursive use of CompositePlotElement is not supported")
     })
 
     // draw bounding box/axis
