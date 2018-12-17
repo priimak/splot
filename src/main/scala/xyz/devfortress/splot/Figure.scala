@@ -284,11 +284,9 @@ case class Figure(
     import java.awt.image.BufferedImage
     val image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB)
     val g2: Graphics2D = g2creator(image)
-    import g2._
-
 
     if (antialiasing) {
-      setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+      g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
     }
 
     val domainWidth = currentDomain._2 - currentDomain._1

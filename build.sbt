@@ -3,7 +3,7 @@ name := "splot-core"
 organization := "xyz.devfortress.splot"
 version := "0.3.0-SNAPSHOT"
 
-scalaVersion := "2.12.5"
+scalaVersion := "2.12.8"
 
 pomIncludeRepository := { _ => false }
 
@@ -45,3 +45,5 @@ lazy val root = (project in file(".")).
     name := "Hello Project",
     paradoxTheme := Some(builtinParadoxTheme("generic"))
   )
+
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test"

@@ -7,11 +7,7 @@ object Background {
 
   def backgroundPlotter(ctx: DrawingContext, color: Color): Unit = {
     import ctx._
-    val savedBackground = g2.getBackground
-
     g2.setBackground(color)
     g2.clearRect(0, 0, imageWidth, imageHeight)
-
-    g2.setBackground(savedBackground)
   }
 }
