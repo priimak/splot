@@ -32,6 +32,13 @@ class G2Proxy(val g2: Graphics2D, proxyAction: ProxyAction = Capture) extends Gr
 
   def verify()(checks: G2Proxy => Unit): Unit = checks(new G2Proxy(this))
 
+  private def o2s(as: Seq[Any]): String = {
+    as.map {
+      case xs: Array[_] => xs.map(_.toString).mkString("[", ",", "]")
+      case a => a.toString
+    }.mkString("[", ",", "]")
+  }
+
   private def proxyActionDo[T](arguments: Seq[Any], action : => T): T = {
     proxyAction match {
       case Capture =>
@@ -44,9 +51,18 @@ class G2Proxy(val g2: Graphics2D, proxyAction: ProxyAction = Capture) extends Gr
           val callingMethodName = Thread.currentThread().getStackTrace()(2).getMethodName
           assert(call.name == callingMethodName,
             s"Instead of $callingMethodName(...) method ${call.name}(...) was called")
+          val argsForCompare = arguments.map {
+            case a: Array[_] => a.toSeq
+            case a => a
+          }
+          val callArgsForCompare = call.arguments.map {
+            case a: Array[_] => a.toSeq
+            case a => a
+          }
           assert(
-            call.arguments == arguments,
-            s"Not matching arguments for method ${call.name}(...). Was expecting $arguments but got ${call.arguments}"
+            callArgsForCompare == argsForCompare,
+            s"Not matching arguments for method ${call.name}(...). " +
+              s"Was expecting ${o2s(arguments)} but got ${o2s(call.arguments)}"
           )
           call.retval.asInstanceOf[T]
         } else {

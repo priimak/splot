@@ -149,15 +149,14 @@ final case class LinePlot(
   color: Color = Color.BLACK,
   lineWidth: Int = 1
 ) extends PlotBase {
- assert(lineWidth > 0)
+  assert(lineWidth > 0)
+  private val xy = data.unzip
 
   override def draw(ctx: DrawingContext, plotIndex: Int): Unit = {
     import ctx._
     g2.setColor(color)
     g2.setStroke(new BasicStroke(lineWidth))
-    data.zip(data.tail).foreach(p2 => {
-      g2.drawLine(x2i(p2._1._1), y2i(p2._1._2), x2i(p2._2._1), y2i(p2._2._2))
-    })
+    g2.drawPolyline(xy._1.map(x => x2i(x)).toArray, xy._2.map(a => y2i(a)).toArray, xy._1.size)
   }
 }
 

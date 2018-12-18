@@ -39,8 +39,7 @@ class FigureTest extends FunSuite {
       // draw two lines of black color and lw=1 corresponding to our plot
       setColor(Color.BLACK)
       setStroke(new BasicStroke(1))
-      drawLine(50, 550, 120, 450)
-      drawLine(120, 450, 190, 400)
+      drawPolyline(Array(50, 120, 190), Array(550, 450, 400), 3)
 
       // draw bounding box
       getBackground
