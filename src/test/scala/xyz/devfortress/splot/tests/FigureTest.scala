@@ -17,6 +17,7 @@ class FigureTest extends FunSuite {
     }
 
     val fig = Figure(title = "A simple plot",
+      titleFont = Font.decode(Font.MONOSPACED),
       domain = (0, 10), range = (0, 5),
       xTicks = Ticks.none, yTicks = Ticks.none,
       g2creator = g2c
@@ -58,10 +59,10 @@ class FigureTest extends FunSuite {
       // draw title
       getFont
       getColor
-      setFont(Font.decode("Times-20"))
+      setFont(Font.decode(Font.MONOSPACED))
       setColor(Color.BLACK)
       getFontMetrics()
-      drawString("A simple plot", 344, 30)
+      drawString("A simple plot", 354, 35)
       // restore saved font and color
       setColor(Color.BLACK)
       setFont(Font.decode("Dialog-12"))

@@ -2,7 +2,7 @@
 
  Scala 2D Plotting library.
 ===========================
-[![Build status](https://travis-ci.org/priimak/splot.svg?branch=master)](https://travis-ci.org/priimak/splot)
+[![Build Status](https://travis-ci.com/priimak/splot.svg?branch=master)](https://travis-ci.com/priimak/splot)
 
 _Version: 0.3.0-SNAPSHOT_
 
