@@ -322,7 +322,8 @@ case class Figure(
       case _ => throw new RuntimeException("Recursive use of CompositePlotElement is not supported")
     })
 
-    // draw bounding box/axis
+    // Unset any clip area set in background plotter or in plot elements and draw bounding box/axis.
+    g2.setClip(null)
     borderPlotter(drawingContext, bgColor)
 
     // Draw x-ticks.

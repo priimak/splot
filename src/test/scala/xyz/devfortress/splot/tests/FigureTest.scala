@@ -35,24 +35,18 @@ class FigureTest extends FunSuite {
       setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
       setBackground(Color.WHITE)
       clearRect(0, 0, 800, 600)
+      setClip(50, 50, 700, 500)
 
       // draw two lines of black color and lw=1 corresponding to our plot
       setColor(Color.BLACK)
       setStroke(new BasicStroke(1))
       drawPolyline(Array(50, 120, 190), Array(550, 450, 400), 3)
 
+      setClip(null)
+
       // draw bounding box
-      getBackground
       getColor
       getStroke
-      setBackground(Color.WHITE)
-      // clear area around bounding box
-      clearRect(0, 0, 800, 50)
-      clearRect(0, 0, 50, 600)
-      clearRect(0, 550, 800, 50)
-      clearRect(750, 0, 50, 600)
-      // reset saved background color
-      setBackground(Color.WHITE)
       // prepare to draw box
       setColor(Color.BLACK)
       setStroke(new BasicStroke(2))

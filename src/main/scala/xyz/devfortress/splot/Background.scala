@@ -9,5 +9,6 @@ object Background {
     import ctx._
     g2.setBackground(color)
     g2.clearRect(0, 0, imageWidth, imageHeight)
+    g2.setClip(leftPadding, topPadding, drawingAreaWidth, drawingAreaHeight)
   }
 }

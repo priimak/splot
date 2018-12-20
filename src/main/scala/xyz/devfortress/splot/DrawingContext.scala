@@ -32,4 +32,7 @@ final case class DrawingContext(
   currentDomain: (Double, Double),
   currentRange: (Double, Double),
   image: BufferedImage
-)
+) {
+  lazy val drawingAreaWidth: Int = imageWidth - leftPadding - rightPadding
+  lazy val drawingAreaHeight: Int = imageHeight - topPadding - bottomPadding
+}
