@@ -47,3 +47,5 @@ lazy val root = (project in file(".")).
   )
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test"
+
+coverageExcludedPackages := "<empty>;xyz\\.devfortress\\.splot\\.colormaps\\..*"
