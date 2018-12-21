@@ -4,6 +4,7 @@
 ===========================
 [![Build Status](https://travis-ci.com/priimak/splot.svg?branch=master)](https://travis-ci.com/priimak/splot)
 [![codecov.io](http://codecov.io/github/priimak/splot/coverage.svg?branch=master)](http://codecov.io/github/priimak/splot/coverage.svg?branch=master)
+[![License](https://img.shields.io/:license-MIT-red.svg)](https://raw.githubusercontent.com/priimak/splot/master/LICENSE)
 
 _Version: 0.3.0-SNAPSHOT_
 
