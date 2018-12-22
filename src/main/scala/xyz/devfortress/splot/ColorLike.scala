@@ -3,7 +3,7 @@ package xyz.devfortress.splot
 import java.awt.Color
 
 /**
- * Class type for all things that can be converted into java.awt.Color. Specifically this is used to convert color
+ * Type class for all things that can be converted into java.awt.Color. Specifically this is used to convert color
  * names (strings) into Color.
  */
 sealed trait ColorLike[T] {
@@ -11,7 +11,7 @@ sealed trait ColorLike[T] {
 }
 
 object ColorLike {
-  def apply[T:ColorLike]: ColorLike[T] = implicitly
+  def apply[T: ColorLike]: ColorLike[T] = implicitly
 
   val colorMap: Map[String, Color] = Map(
     "red" -> Color.RED,
@@ -28,7 +28,7 @@ object ColorLike {
     "yellow" -> Color.YELLOW
   )
 
-  implicit val s2c: ColorLike[String] = new ColorLike[String] {
+  implicit val stringColorLike: ColorLike[String] = new ColorLike[String] {
     override def asColor(str: String): Color = colorMap.get(str) match {
       case Some(color) => color
       case None => throw new IllegalArgumentException(
@@ -37,7 +37,7 @@ object ColorLike {
     }
   }
 
-  implicit val c2c: ColorLike[Color] = new ColorLike[Color] {
+  implicit val colorColorLike: ColorLike[Color] = new ColorLike[Color] {
     override def asColor(color: Color): Color = color
   }
 }

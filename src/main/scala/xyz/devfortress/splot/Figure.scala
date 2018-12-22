@@ -82,8 +82,14 @@ case class Figure(
    * @param color color of the line.
    * @param lw    line width.
    */
-  def plot[C: ColorLike, D: SeqOfDoubleTuples](data: Seq[D], color: C = Color.BLACK, lw: Int = 1): Unit =
-    plotElements += LinePlot(SeqOfDoubleTuples[D].asDoubleSeq(data), ColorLike[C].asColor(color), lw)
+  def plot[C: ColorLike, D: SeqOfDoubleTuples, L: LinesTypeLike](
+      data: Seq[D], color: C = Color.BLACK, lw: Int = 1, lt: L = LineType.SOLID): Unit =
+    plotElements += LinePlot(
+      data = SeqOfDoubleTuples[D].asDoubleSeq(data),
+      color = ColorLike[C].asColor(color),
+      lineWidth = lw,
+      lineType = LinesTypeLike[L].asLineType(lt)
+    )
 
   /**
    * Convenience function that can be used instead of fig += PointPlot(...). Adds scatter plot.
@@ -163,12 +169,16 @@ case class Figure(
    * @param fillColor optional fill color for the interior of the rectangle
    * @param alpha     transparency of the
    */
-  def rectangle[C: ColorLike, S: SomethingLikeColor, A](anchor: (A, A), width: Double, height: Double,
-    color: C = Color.BLUE,
-    lw: Int = 1,
-    fillColor: S = Option.empty,
-    alpha: Double = 1.0)(implicit integral: Integral[A]): Unit = {
-    assert(width > 0, "Width must be greated than 0.")
+  def rectangle[C: ColorLike, S: SomethingLikeColor, A: Integral, L: LinesTypeLike](
+      anchor: (A, A),
+      width: Double,
+      height: Double,
+      color: C = Color.BLUE,
+      lw: Int = 1,
+      lt: L = LineType.SOLID,
+      fillColor: S = Option.empty,
+      alpha: Double = 1.0)(implicit integral: Integral[A]): Unit = {
+    assert(width > 0, "Width must be greater than 0.")
     assert(height > 0, "Height must be greater than 0.")
     assert(alpha > 0 && alpha <= 1, "Transparency value must be in range (0, 1].")
     val maybeColor = SomethingLikeColor[S].asSomething(fillColor)
@@ -179,6 +189,7 @@ case class Figure(
       width = width, height = height,
       color = ColorLike[C].asColor(color),
       lw = lw,
+      lt = LinesTypeLike[L].asLineType(lt),
       fillColor = maybeColor,
       alpha = alpha
     )
@@ -211,6 +222,7 @@ case class Figure(
           height = p2._1._2,
           color = colorOfEdge,
           lw = edgeWith,
+          lt = LineType.SOLID,
           fillColor = Some(colorOfFill),
           alpha = alpha
         ))
@@ -224,6 +236,7 @@ case class Figure(
         height = lastPair._2._2,
         color = colorOfEdge,
         lw = edgeWith,
+        lt = LineType.SOLID,
         fillColor = Some(colorOfFill),
         alpha = alpha
       ))))
@@ -231,7 +244,7 @@ case class Figure(
   }
 
   private def makeRectangle(anchor: (Double, Double), width: Double, height: Double,
-    color: Color, lw: Int, fillColor: Option[Color], alpha: Double): Shape = {
+    color: Color, lw: Int, lt: LineType, fillColor: Option[Color], alpha: Double): Shape = {
     assert(width > 0, "Width must be greated than 0.")
     assert(height > 0, "Height must be greater than 0.")
     assert(alpha > 0 && alpha <= 1, "Transparency value must be in range (0, 1].")
@@ -242,6 +255,7 @@ case class Figure(
       ),
       color = color,
       lineWidth = lw,
+      lineType = lt,
       fillColor = fillColor match {
         case Some(c) => Some(new Color(c.getRed, c.getGreen, c.getBlue, (alpha * 255).toInt))
         case None => None

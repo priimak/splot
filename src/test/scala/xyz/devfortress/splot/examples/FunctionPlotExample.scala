@@ -17,7 +17,7 @@ object FunctionPlotExample {
     )
     val xs = 1.0 to 5.0 by 0.001
 
-    fig.plot(xs.map(x => (x, 1/x)), color = "orange", lw = 2)
+    fig.plot(xs.map(x => (x, 1/x)), color = "orange", lw = 2, lt = "--")
     fig.plot(xs.map(x => (x, f(x))))
     fig.add(Label("sin(x^2)/x", 1.37, f(1.36), font = Font.decode("Times-18")))
     fig.add(Label(

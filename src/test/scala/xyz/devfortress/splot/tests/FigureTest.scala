@@ -41,8 +41,10 @@ class FigureTest extends FunSuite {
 
       // draw two lines of black color and lw=1 corresponding to our plot
       setColor(Color.BLACK)
+      getStroke
       setStroke(new BasicStroke(1))
       drawPolyline(Array(50, 120, 190), Array(550, 450, 400), 3)
+      setStroke(new BasicStroke(1))
 
       setClip(null)
 

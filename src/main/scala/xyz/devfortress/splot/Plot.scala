@@ -1,6 +1,6 @@
 package xyz.devfortress.splot
 
-import java.awt.{BasicStroke, Color, Font, Graphics2D}
+import java.awt._
 
 import scala.math.{max, min}
 
@@ -25,6 +25,17 @@ trait Plot extends PlotElement with CommonSPlotLibTrait {
   def inDomain: (Double, Double) => Boolean
 
   def draw(ctx: DrawingContext, plotIndex: Int): Unit
+}
+
+object Plot {
+  def makeStroke(lineWidth: Int, lineType: LineType): Stroke = {
+    if (lineType == LineType.SOLID)
+      new BasicStroke(lineWidth)
+    else
+      new BasicStroke(
+        lineWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 1, lineType.dashPattern.map(_ * lineWidth).toArray, 0
+      )
+  }
 }
 
 trait LazyZMapPlot extends Plot {
@@ -143,20 +154,26 @@ final case class ZPointPlot(
  * @param data sequence of data points.
  * @param color color of the lines.
  * @param lineWidth width of the line in pixels. Must be greater than 0.
+ * @param lineType type of line to draw, i.e. as dashes, dashes and dots, solid line (default) etc.
  */
 final case class LinePlot(
   data: Seq[(Double, Double)],
   color: Color = Color.BLACK,
-  lineWidth: Int = 1
+  lineWidth: Int = 1,
+  lineType: LineType = LineType.SOLID
 ) extends PlotBase {
   assert(lineWidth > 0)
   private val xy = data.unzip
+  private lazy val stroke = Plot.makeStroke(lineWidth, lineType)
 
   override def draw(ctx: DrawingContext, plotIndex: Int): Unit = {
     import ctx._
     g2.setColor(color)
-    g2.setStroke(new BasicStroke(lineWidth))
+
+    val savedStroke = g2.getStroke
+    g2.setStroke(stroke)
     g2.drawPolyline(xy._1.map(x => x2i(x)).toArray, xy._2.map(a => y2i(a)).toArray, xy._1.size)
+    g2.setStroke(savedStroke)
   }
 }
 
@@ -174,22 +191,28 @@ final case class Shape(
   override val data: Seq[(Double, Double)],
   override val color: Color = Color.BLACK,
   lineWidth: Int = 1,
+  lineType: LineType = LineType.SOLID,
   fillColor: Option[Color] = None
 ) extends PlotBase {
   assert(lineWidth >= 0, "Line width might be greater or equals to 0")
+  private lazy val stroke = Plot.makeStroke(lineWidth, lineType)
 
   override def draw(ctx: DrawingContext, plotIndex: Int): Unit = {
     import ctx._
     val onScreenXY = data.map(xy => (x2i(xy._1), y2i(xy._2))).unzip
+    val savedColor = g2.getColor
     if (fillColor.isDefined) {
       g2.setColor(fillColor.get)
       g2.fillPolygon(onScreenXY._1.toArray, onScreenXY._2.toArray, data.size)
     }
     if (lineWidth > 0) {
+      val savedStroke = g2.getStroke
       g2.setColor(color)
-      g2.setStroke(new BasicStroke(lineWidth))
+      g2.setStroke(stroke)
       g2.drawPolygon(onScreenXY._1.toArray, onScreenXY._2.toArray, data.size)
+      g2.setStroke(savedStroke)
     }
+    g2.setColor(savedColor)
   }
 }
 
