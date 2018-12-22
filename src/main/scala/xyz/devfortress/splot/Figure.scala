@@ -82,10 +82,10 @@ case class Figure(
    * @param color color of the line.
    * @param lw    line width.
    */
-  def plot[C: ColorLike, D: SeqOfDoubleTuples, L: LinesTypeLike](
-      data: Seq[D], color: C = Color.BLACK, lw: Int = 1, lt: L = LineType.SOLID): Unit =
+  def plot[C: ColorLike, L: LinesTypeLike](
+      data: Seq[(Double, Double)], color: C = Color.BLACK, lw: Int = 1, lt: L = LineType.SOLID): Unit =
     plotElements += LinePlot(
-      data = SeqOfDoubleTuples[D].asDoubleSeq(data),
+      data = data,
       color = ColorLike[C].asColor(color),
       lineWidth = lw,
       lineType = LinesTypeLike[L].asLineType(lt)
@@ -99,10 +99,10 @@ case class Figure(
    * @param color color of points.
    * @param pt    type of points.
    */
-  def scatter[P: PointTypeLike, C: ColorLike, D: SeqOfDoubleTuples](data: Seq[D], ps: Int = 3, color: C = Color.BLACK,
+  def scatter[P: PointTypeLike, C: ColorLike](data: Seq[(Double, Double)], ps: Int = 3, color: C = Color.BLACK,
         pt: P = PointType.Dot): Unit =
     plotElements += PointPlot(
-      SeqOfDoubleTuples[D].asDoubleSeq(data),
+      data,
       pointSize = ps,
       color = ColorLike[C].asColor(color),
       pointType = PointTypeLike[P].asPointType(pt)
@@ -118,10 +118,10 @@ case class Figure(
    * @param pt       type of data points, i.e. how we display them as dots, crosses or something else.
    * @tparam P type of points.
    */
-  def zscatter[P: PointTypeLike, D: SeqOfDoubleTuples](data: Seq[D], zValues: Seq[Double], ps: Int = 5,
+  def zscatter[P: PointTypeLike](data: Seq[(Double, Double)], zValues: Seq[Double], ps: Int = 5,
     colorMap: Double => Color = colormaps.viridis, pt: P = PointType.Dot): Unit =
     plotElements += ZPointPlot(
-      SeqOfDoubleTuples[D].asDoubleSeq(data),
+      data,
       zValues,
       pointSize = ps,
       colorMap = colorMap,
@@ -207,12 +207,10 @@ case class Figure(
    *              bars are drawn edge to edge without any space between bars.
    * @param alpha Transparency for the fill color from 0 (fully transparent) to 1 (fully opaque, default value)
    */
-  def barplot[C: ColorLike, D: SeqOfDoubleTuples](data: Seq[D], color: C = Color.YELLOW,
+  def barplot[C: ColorLike](data: Seq[(Double, Double)], color: C = Color.YELLOW,
       edgeColor: C = Color.BLACK, edgeWith: Int = 1, width: Double => Double = w => w, alpha: Double = 1.0): Unit = {
     if (data.size > 1) { // draw only if there are at least two data points
-      val points: Seq[(Double, Double)] = SeqOfDoubleTuples[D].asDoubleSeq(data)
-
-      val p2s = points.zip(points.tail)
+      val p2s = data.zip(data.tail)
       val colorOfEdge = ColorLike[C].asColor(edgeColor)
       val colorOfFill = ColorLike[C].asColor(color)
       val boxes: Seq[Left[Shape, Label]] = for (p2 <- p2s) yield {
