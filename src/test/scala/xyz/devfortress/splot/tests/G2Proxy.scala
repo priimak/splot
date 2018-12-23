@@ -18,6 +18,23 @@ case class CapturedCall(name: String, arguments: Seq[Any], retval: Any) {
   def this(args: Seq[Any], retval: Any) {
     this(Thread.currentThread().getStackTrace()(3).getMethodName, args, retval)
   }
+
+  override def toString: String = s"$name(${CapturedCall.o2s(arguments)})"
+}
+
+object CapturedCall {
+  def o2s(as: Seq[Any]): String = {
+
+    as.map(Option.apply).map {
+      case None => "null"
+      case Some(e) => e match {
+        case xs: Some[Array[_]] => xs.map(_.toString).mkString("[", ",", "]")
+        case bs: BasicStroke => s"BasicStroke(${bs.getLineWidth}, ${bs.getEndCap}, " +
+          s"${bs.getLineJoin}, ${bs.getMiterLimit}, ${bs.getDashArray}, ${bs.getDashPhase})"
+        case a => a.toString
+      }
+    }.mkString("[", ",", "]")
+  }
 }
 
 class G2Proxy(val g2: Graphics2D, proxyAction: ProxyAction = Capture) extends Graphics2D {
@@ -31,13 +48,6 @@ class G2Proxy(val g2: Graphics2D, proxyAction: ProxyAction = Capture) extends Gr
   def getCapture(): Seq[CapturedCall] = capture
 
   def verify()(checks: G2Proxy => Unit): Unit = checks(new G2Proxy(this))
-
-  private def o2s(as: Seq[Any]): String = {
-    as.map {
-      case xs: Array[_] => xs.map(_.toString).mkString("[", ",", "]")
-      case a => a.toString
-    }.mkString("[", ",", "]")
-  }
 
   private def proxyActionDo[T](arguments: Seq[Any], action : => T): T = {
     proxyAction match {
@@ -62,7 +72,7 @@ class G2Proxy(val g2: Graphics2D, proxyAction: ProxyAction = Capture) extends Gr
           assert(
             callArgsForCompare == argsForCompare,
             s"Not matching arguments for method ${call.name}(...). " +
-              s"Was expecting ${o2s(arguments)} but got ${o2s(call.arguments)}"
+              s"Was expecting ${CapturedCall.o2s(arguments)} but got ${CapturedCall.o2s(call.arguments)}"
           )
           call.retval.asInstanceOf[T]
         } else {

@@ -96,7 +96,8 @@ final case class PointPlot(
   data: Seq[(Double, Double)],
   pointSize: Int = 3,
   color: Color = Color.BLUE,
-  pointType: PointType = PointType.Dot
+  pointType: PointType = PointType.Dot,
+  fillColor: Option[Color] = None
 ) extends PlotBase {
   assert(pointSize > 0)
 
@@ -106,7 +107,7 @@ final case class PointPlot(
     g2.setStroke(new BasicStroke(1))
     val halfSize = pointSize / 2
     data.foreach(point => {
-      pointType.drawAt((x2i(point._1), y2i(point._2)), pointSize, halfSize, g2)
+      pointType.drawAt((x2i(point._1), y2i(point._2)), pointSize, halfSize, fillColor, g2)
     })
   }
 }
@@ -142,8 +143,9 @@ final case class ZPointPlot(
     g2.setStroke(new BasicStroke(1))
     val halfSize = pointSize / 2
     data.zip(zValues).foreach(point => {
-      g2.setColor(colorMap(point._2))
-      pointType.drawAt((x2i(point._1._1), y2i(point._1._2)), pointSize, halfSize, g2)
+      val color = colorMap(point._2)
+      g2.setColor(color)
+      pointType.drawAt((x2i(point._1._1), y2i(point._1._2)), pointSize, halfSize, Some(color), g2)
     })
   }
 }

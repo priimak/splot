@@ -2,6 +2,8 @@ package xyz.devfortress.splot
 
 import java.awt.{BasicStroke, Color, Font, Stroke}
 
+import scala.collection.immutable.NumericRange
+
 /**
  * Class for defining ticks as fixed points. It ignores input arguments to xTicks and/or yTicks returns provided
  * sequence of ticks. For convenience apply methods from companion Ticks object are also provided. There tick labels
@@ -28,26 +30,48 @@ object Ticks {
   val DEFAULT_XTICKS_PLOTTER: (DrawingContext, Seq[(Double, String)]) => Int = xTicksPlotter()
   val DEFAULT_YTICKS_PLOTTER: (DrawingContext, Seq[(Double, String)]) => Int = yTicksPlotter()
 
-  private def round(d: Double, decimalPlace: Int) =
+  private def floor(d: Double, decimalPlace: Int) =
     BigDecimal(d).setScale(decimalPlace, BigDecimal.RoundingMode.FLOOR).doubleValue()
+
+  private def ceil(d: Double, decimalPlace: Int) =
+    BigDecimal(d).setScale(decimalPlace, BigDecimal.RoundingMode.CEILING).doubleValue()
+
+
+  val x: (Double, Double) => Seq[(Double, String)] = ticksN(5)_
 
   /**
    * Function that is passed as xTicks and yTicks parameter to [[Figure]] constructor which will make 10 or so ticks.
    */
-  val ticks10: (Double, Double) => Seq[(Double, String)] =
-    (min: Double, max: Double) => {
-      assert(max > min)
-      val (decimalPoints, tickDistance) = Stream.from(1)
-        .map(d => (d, round((max - min)/10, d)))
-        .filter(_._2 != 0)
-        .head
-      val firstTickPosition = round(min, decimalPoints)
-      //noinspection ScalaMalformedFormatString
-      (0 to 20).map(firstTickPosition + tickDistance * _)
-        .filter(_ <= max)
-        .filter(_ >= min)
-        .map(tickPosition => (tickPosition, s"%.${decimalPoints}f".format(tickPosition)))
-    }
+  def ticksN(numTicks: Int)(min: Double, max: Double): Seq[(Double, String)] = {
+    assert(min < max)
+    val d = max - min
+    val dPerN = d / numTicks
+    val dPerN2 = dPerN / 2
+
+    val proposedTickDistance = Stream.from(1).map(d => floor(dPerN, d)).filter(_ != 0).head
+
+    val (decimalPoints, tickDistance) = (0 to 100)
+      .map(x => (x, ceil(proposedTickDistance, x)))
+      .filter(_._2 <= dPerN)
+      .head
+
+    // Now find position for the first tick.
+    val proposedFirsPosition = (min/tickDistance).toInt * tickDistance
+    val firstTickPosition =
+      if (proposedFirsPosition >= min)
+        proposedFirsPosition
+      else
+        proposedFirsPosition + tickDistance
+
+    // Now we are ready to assemble sequence
+    (0 to 20).map(firstTickPosition + tickDistance * _)
+      .filter(_ <= max)
+      .filter(_ >= min)
+      .map(tickPosition => (tickPosition, s"%.${decimalPoints}f".format(tickPosition)))
+  }
+
+  val ticks10: (Double, Double) => Seq[(Double, String)] = ticksN(9)_
+  val ticks5: (Double, Double) => Seq[(Double, String)] = ticksN(5)_
 
   val none: (Double, Double) => Seq[(Double, String)] = (_, _) => Seq()
 
@@ -55,9 +79,11 @@ object Ticks {
 
   def apply(ticks: Range): Ticks = new Ticks(ticks.map(t => (t.toDouble, s"$t")))
 
+  def apply(ticks: NumericRange[Double]): Ticks = new Ticks(ticks.map(t => (t, s"$t")))
+
   /**
    * Curried function for constructing xTickPlotter function that is passed to the [[Figure]] constructor. Pass
-   * first 4 arguments and obtain function sutable for passing to [[Figure]] constructor.
+   * first 4 arguments and obtain function suitable for passing to [[Figure]] constructor.
    *
    * @param color Color with which ticks and tick-labels will be drawn.
    * @param tickLength Length of the tick in pixels.

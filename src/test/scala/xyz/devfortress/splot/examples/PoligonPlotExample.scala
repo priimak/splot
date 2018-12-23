@@ -81,8 +81,9 @@ object PoligonPlotExample {
       fig.scatter(
         Seq(city.coordinates),
         pt = "o", // using circle
+        fc = "blue", // this makes it a filled circle
         ps=(30 * populationIndex).toInt, // circle size depends on population of the city
-        color = "blue"
+        color = "blue" // color of the rim of the circle
       )
       fig add Label(
         city.name,

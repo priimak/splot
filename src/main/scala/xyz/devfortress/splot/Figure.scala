@@ -46,7 +46,7 @@ case class Figure(
       domain: Option[(Double, Double)] = None,
       range: Option[(Double, Double)] = None,
       xTicks: (Double, Double) => Seq[(Double, String)] = Ticks.ticks10,
-      yTicks: (Double, Double) => Seq[(Double, String)] = Ticks.ticks10,
+      yTicks: (Double, Double) => Seq[(Double, String)] = Ticks.ticks5,
       backgroudPlotter: (DrawingContext, Color) => Unit = Background.DEFAULT_BACKGROUND_PLOTTER,
       gridPlotter: (DrawingContext, Seq[Int], Seq[Int]) => Unit = Grid.DEFAULT_GRID_PLOTTER,
       xLabelPlotter: (DrawingContext, Int, String) => Unit = XYLabels.DEFAULT_XLABEL_PLOTTER,
@@ -97,16 +97,22 @@ case class Figure(
    * @param data  sequence of x-y data points forming plot.
    * @param ps    size of point.
    * @param color color of points.
+   * @param fc    fill color
+   * @param fa    fill alpha from 0 to 1 (default)
    * @param pt    type of points.
    */
-  def scatter[P: PointTypeLike, C: ColorLike](data: Seq[(Double, Double)], ps: Int = 3, color: C = Color.BLACK,
-        pt: P = PointType.Dot): Unit =
+  def scatter[P: PointTypeLike, C: ColorLike, S: SomethingLikeColor](
+      data: Seq[(Double, Double)], ps: Int = 3, color: C = Color.BLACK, fc: S = Option.empty, fa: Double = 1.0, pt: P = PointType.Dot): Unit = {
+    assert(fa > 0 && fa <= 1, "Transparency value must be in range (0, 1].")
     plotElements += PointPlot(
       data,
       pointSize = ps,
       color = ColorLike[C].asColor(color),
-      pointType = PointTypeLike[P].asPointType(pt)
+      pointType = PointTypeLike[P].asPointType(pt),
+      fillColor = SomethingLikeColor[S].asSomething(fc)
+        .flatMap(c => Some(new Color(c.getRed, c.getGreen, c.getBlue, (fa * 255).toInt)))
     )
+  }
 
   /**
    * Convenience function that can be used instead of fig += [[ZPointPlot]](...).
@@ -282,7 +288,11 @@ case class Figure(
         case plt: Plot => Seq(plt)
         case _ => Seq()
       })
-      (elements.map(extractBound(_)._1).min, elements.map(extractBound(_)._2).max)
+      val min = elements.map(extractBound(_)._1).min
+      val max = elements.map(extractBound(_)._2).max
+      // we need to add padding to these exact bounds
+      val padding = (max - min) / 30
+      (min - padding, max + padding)
     })
   }
 

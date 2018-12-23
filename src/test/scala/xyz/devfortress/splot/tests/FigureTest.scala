@@ -86,7 +86,7 @@ class FigureTest extends FunSuite {
       showGrid = true
     )
 
-    fig.scatter(Seq((0, 0), (7, 8)))
+    fig.scatter(Seq((0, 0), (7, 8)), pt = "o")
     fig.makeImage(800, 600)
 
     val graphics2D = g2capture.get()
@@ -101,12 +101,12 @@ class FigureTest extends FunSuite {
       setBackground(Color.GREEN)
       clearRect(0, 0, 800, 600)
       setClip(5, 7, 789, 585)
-      setColor(Color.BLACK)
-      setStroke(new BasicStroke(1))
 
       // draw two points
-      fillRect(4, 591, 3, 3)
-      fillRect(793, 6, 3, 3)
+      setColor(Color.BLACK)
+      setStroke(new BasicStroke(1))
+      drawOval(28,572,3,3)
+      drawOval(768,24,3,3)
 
       // draw bounding box
       setClip(null)

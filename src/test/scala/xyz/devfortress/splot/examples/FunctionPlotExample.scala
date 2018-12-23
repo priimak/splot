@@ -12,8 +12,8 @@ object FunctionPlotExample {
   def main(args: Array[String]): Unit = {
     val fig = Figure(
       title = "sin(x^2)/x",
-      xTicks = Ticks(1, 2, 3, 4, 5),
-      yTicks = Ticks(-0.5, 0, 0.5, 1)
+      showGrid = true,
+      xTicks = Ticks(1.0 to 5 by 0.5),
     )
     val xs = 1.0 to 5.0 by 0.001
 

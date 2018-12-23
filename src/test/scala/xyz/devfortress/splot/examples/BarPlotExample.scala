@@ -8,8 +8,6 @@ object BarPlotExample {
   def main(args: Array[String]): Unit = {
     val fig = Figure(
       title = "Temperature by the hour for 'Stovepipe Wells' for two different dates.",
-      domain = (0, 24),
-      range = (0, 30),
       xTicks = Ticks(0 to 24),
       yTicks = Ticks(0 to 30 by 5),
       xLabel = "Time of the day",
