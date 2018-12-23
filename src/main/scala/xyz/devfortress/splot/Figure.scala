@@ -309,6 +309,9 @@ case class Figure(
 
     if (antialiasing) {
       g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+      g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE)
+      g2.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY)
+      g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
     }
 
     val domainWidth = currentDomain._2 - currentDomain._1
@@ -319,9 +322,9 @@ case class Figure(
     val horizontalScaleFactor = plotWidth / domainWidth
     val verticalScaleFactor = plotHeight / rangeWidth
 
-    def xScale(x: Double): Int = (leftPadding + (x - currentDomain._1) * horizontalScaleFactor).toInt
+    def xScale(x: Double): Int =  Math.round(leftPadding + (x - currentDomain._1) * horizontalScaleFactor).toInt
 
-    def yScale(y: Double): Int = (verticalOffset - (y - currentRange._1) * verticalScaleFactor).toInt
+    def yScale(y: Double): Int = Math.round(verticalOffset - (y - currentRange._1) * verticalScaleFactor).toInt
 
     val drawingContext = DrawingContext(
       g2, xScale, yScale, imageWidth, imageHeight,

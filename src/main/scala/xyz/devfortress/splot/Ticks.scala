@@ -43,31 +43,34 @@ object Ticks {
    * Function that is passed as xTicks and yTicks parameter to [[Figure]] constructor which will make 10 or so ticks.
    */
   def ticksN(numTicks: Int)(min: Double, max: Double): Seq[(Double, String)] = {
-    assert(min < max)
-    val d = max - min
-    val dPerN = d / numTicks
-    val dPerN2 = dPerN / 2
+    if (max <= min) {
+      Seq()
+    } else {
+      val d = max - min
+      val dPerN = d / numTicks
+      val dPerN2 = dPerN / 2
 
-    val proposedTickDistance = Stream.from(1).map(d => floor(dPerN, d)).filter(_ != 0).head
+      val proposedTickDistance = Stream.from(1).map(d => floor(dPerN, d)).filter(_ != 0).head
 
-    val (decimalPoints, tickDistance) = (0 to 100)
-      .map(x => (x, ceil(proposedTickDistance, x)))
-      .filter(_._2 <= dPerN)
-      .head
+      val (decimalPoints, tickDistance) = (0 to 100)
+        .map(x => (x, ceil(proposedTickDistance, x)))
+        .filter(_._2 <= dPerN)
+        .head
 
-    // Now find position for the first tick.
-    val proposedFirsPosition = (min/tickDistance).toInt * tickDistance
-    val firstTickPosition =
-      if (proposedFirsPosition >= min)
-        proposedFirsPosition
-      else
-        proposedFirsPosition + tickDistance
+      // Now find position for the first tick.
+      val proposedFirsPosition = (min / tickDistance).toInt * tickDistance
+      val firstTickPosition =
+        if (proposedFirsPosition >= min)
+          proposedFirsPosition
+        else
+          proposedFirsPosition + tickDistance
 
-    // Now we are ready to assemble sequence
-    (0 to 20).map(firstTickPosition + tickDistance * _)
-      .filter(_ <= max)
-      .filter(_ >= min)
-      .map(tickPosition => (tickPosition, s"%.${decimalPoints}f".format(tickPosition)))
+      // Now we are ready to assemble sequence
+      (0 to 20).map(firstTickPosition + tickDistance * _)
+        .filter(_ <= max)
+        .filter(_ >= min)
+        .map(tickPosition => (tickPosition, s"%.${decimalPoints}f".format(tickPosition)))
+    }
   }
 
   val ticks10: (Double, Double) => Seq[(Double, String)] = ticksN(9)_

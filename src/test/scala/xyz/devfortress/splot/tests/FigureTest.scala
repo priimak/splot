@@ -31,10 +31,17 @@ class FigureTest extends FunSuite {
 
     val graphics2D = g2capture.get()
     assert(graphics2D != null)
+    for (x <- graphics2D.getCapture()) {
+      println(x)
+    }
     graphics2D.verify() { capturedCalls => {
       import capturedCalls._
-      // setting up background for newly created image
       setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+      setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE)
+      setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY)
+      setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
+
+      // setting up background for newly created image
       setBackground(Color.WHITE)
       clearRect(0, 0, 800, 600)
       setClip(50, 50, 700, 500)
@@ -91,9 +98,9 @@ class FigureTest extends FunSuite {
 
     val graphics2D = g2capture.get()
     assert(graphics2D != null)
-    for (x <- graphics2D.getCapture()) {
-      println(x)
-    }
+//    for (x <- graphics2D.getCapture()) {
+//      println(x)
+//    }
 
     graphics2D.verify() { capturedCalls => {
       import capturedCalls._
@@ -105,7 +112,7 @@ class FigureTest extends FunSuite {
       // draw two points
       setColor(Color.BLACK)
       setStroke(new BasicStroke(1))
-      drawOval(28,572,3,3)
+      drawOval(29,573,3,3)
       drawOval(768,24,3,3)
 
       // draw bounding box
