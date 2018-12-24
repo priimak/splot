@@ -29,9 +29,10 @@ def main(args: Array[String]): Unit = {
     val populationIndex = city.population / maxPopulation
     fig.scatter(
       Seq(city.coordinates),
-      pt = "o", // using circle
+      pt = "o", // Using circle
+      fc = "blue", // This makes it a filled circle. 'fc' stands for 'fill color'
       ps=(30 * populationIndex).toInt, // circle size depends on population of the city
-      color = "blue"
+      color = "blue" // color of the rim of the circle is the same as fill color
     )
     fig add Label(
       city.name,
@@ -39,15 +40,14 @@ def main(args: Array[String]): Unit = {
       city.coordinates._2 + 0.5 * populationIndex, // slightly shift label upwards
       font = Font.decode("Serif-15")
                  .deriveFont(Font.BOLD)
-                 .deriveFont(AffineTransform.getRotateInstance(-Math.PI/2))
-    )
+                 .deriveFont(AffineTransform.getRotateInstance(-Math.PI/2)))
   }
 
   fig.show(730, 500)
 }
 ```
 
-![](texas-4.png)
+![](Texas.png)
 
 Data for Texas boundary and cities is:
 

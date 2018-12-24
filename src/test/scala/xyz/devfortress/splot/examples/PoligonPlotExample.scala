@@ -80,10 +80,10 @@ object PoligonPlotExample {
       val populationIndex = city.population / maxPopulation
       fig.scatter(
         Seq(city.coordinates),
-        pt = "o", // using circle
-        fc = "blue", // this makes it a filled circle
+        pt = "o", // Using circle
+        fc = "blue", // This makes it a filled circle. 'fc' stands for 'fill color'
         ps=(30 * populationIndex).toInt, // circle size depends on population of the city
-        color = "blue" // color of the rim of the circle
+        color = "blue" // color of the rim of the circle is the same as fill color
       )
       fig add Label(
         city.name,

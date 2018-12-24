@@ -47,7 +47,7 @@ case class Figure(
       range: Option[(Double, Double)] = None,
       xTicks: (Double, Double) => Seq[(Double, String)] = Ticks.ticks10,
       yTicks: (Double, Double) => Seq[(Double, String)] = Ticks.ticks5,
-      backgroudPlotter: (DrawingContext, Color) => Unit = Background.DEFAULT_BACKGROUND_PLOTTER,
+      backgroundPlotter: (DrawingContext, Color) => Unit = Background.DEFAULT_BACKGROUND_PLOTTER,
       gridPlotter: (DrawingContext, Seq[Int], Seq[Int]) => Unit = Grid.DEFAULT_GRID_PLOTTER,
       xLabelPlotter: (DrawingContext, Int, String) => Unit = XYLabels.DEFAULT_XLABEL_PLOTTER,
       yLabelPlotter: (DrawingContext, Int, String) => Unit = XYLabels.DEFAULT_YLABEL_PLOTTER,
@@ -65,7 +65,7 @@ case class Figure(
   private val frame: AtomicReference[JFrame] = new AtomicReference[JFrame]()
   private val originalImage = new AtomicReference[BufferedImage](null)
   private val resetP = new AtomicBoolean()
-  private var lastFrameDimentions: (Int, Int) = (0, 0)
+  private var lastFrameDimensions: (Int, Int) = (0, 0)
   private val originalDomain = new AtomicReference[(Double, Double)]()
   private val originalRange = new AtomicReference[(Double, Double)]()
   private val buildingFigure = new CountDownLatch(1)
@@ -104,13 +104,19 @@ case class Figure(
   def scatter[P: PointTypeLike, C: ColorLike, S: SomethingLikeColor](
       data: Seq[(Double, Double)], ps: Int = 3, color: C = Color.BLACK, fc: S = Option.empty, fa: Double = 1.0, pt: P = PointType.Dot): Unit = {
     assert(fa > 0 && fa <= 1, "Transparency value must be in range (0, 1].")
+    val pointType = PointTypeLike[P].asPointType(pt)
+    val c = ColorLike[C].asColor(color)
+    val fillColor: Option[Color] = pointType match {
+      case PointType.Dot => Some(new Color(c.getRed, c.getRed, c.getBlue, (fa * 255).toInt))
+      case _ => SomethingLikeColor[S].asSomething(fc)
+        .flatMap(c => Some(new Color(c.getRed, c.getGreen, c.getBlue, (fa * 255).toInt)))
+    }
     plotElements += PointPlot(
       data,
       pointSize = ps,
       color = ColorLike[C].asColor(color),
       pointType = PointTypeLike[P].asPointType(pt),
-      fillColor = SomethingLikeColor[S].asSomething(fc)
-        .flatMap(c => Some(new Color(c.getRed, c.getGreen, c.getBlue, (fa * 255).toInt)))
+      fillColor = fillColor
     )
   }
 
@@ -332,7 +338,7 @@ case class Figure(
       currentDomain, currentRange, image
     )
 
-    backgroudPlotter(drawingContext, bgColor)
+    backgroundPlotter(drawingContext, bgColor)
 
     // Draw all plot elements
     plotElements.flatMap(p => p match {
@@ -401,7 +407,7 @@ case class Figure(
       override def paintComponent(g: Graphics): Unit = {
         super.paintComponent(g)
         val currentFrameDimentions = (getWidth, getHeight)
-        if (lastFrameDimentions != currentFrameDimentions) {
+        if (lastFrameDimensions != currentFrameDimentions) {
           originalImage.set(null) // invalidate original image
           resetP.set(false) // make sure that it is not reset operation
         }
@@ -439,7 +445,7 @@ case class Figure(
           if (currentRange == originalRange.get() && currentDomain == originalDomain.get()) {
             originalImage.compareAndSet(null, image)
           }
-          lastFrameDimentions = (getWidth, getHeight)
+          lastFrameDimensions = (getWidth, getHeight)
           val domainForDisplay = ("%.3G".format(currentDomain._1), "%.3G".format(currentDomain._2))
           val rangeForDisplay = ("%.3G".format(currentRange._1), "%.3G".format(currentRange._2))
           frame.get().setTitle(s"$name domain=$domainForDisplay range=$rangeForDisplay")

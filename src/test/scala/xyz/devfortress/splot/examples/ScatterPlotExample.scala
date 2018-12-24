@@ -1,6 +1,5 @@
 package xyz.devfortress.splot.examples
 
-import java.awt.Color
 import java.util.Random
 
 import xyz.devfortress.splot._
@@ -21,7 +20,7 @@ object ScatterPlotExample {
     val gs = (0 to 100000).map(_ => (rnd.nextGaussian() - 1.5, rnd.nextGaussian())) ++
       (0 to 100000).map(_ => (rnd.nextGaussian() + 1.5, rnd.nextGaussian()))
 
-    fig.scatter(gs, pt = ".", ps = 5, fc = Color.BLACK, fa = 0.04)
+    fig.scatter(gs, pt = ".", fa = 0.036)
 
     fig.show(730, 500)
   }

@@ -52,4 +52,5 @@ object XYLabels {
       g2.setColor(savedColor)
       g2.setFont(savedFont)
     }
-  }}
+  }
+}

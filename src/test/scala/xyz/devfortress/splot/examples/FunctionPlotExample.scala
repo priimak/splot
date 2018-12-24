@@ -13,16 +13,16 @@ object FunctionPlotExample {
     val fig = Figure(
       title = "sin(x^2)/x",
       showGrid = true,
-      xTicks = Ticks(1.0 to 5 by 0.5),
+      xTicks = Ticks(1 to 4),
     )
     val xs = 1.0 to 5.0 by 0.001
 
-    fig.plot(xs.map(x => (x, 1/x)), color = "orange", lw = 2, lt = "--")
+    fig.plot(xs.map(x => (x, 1/x)), color = "blue", lw = 2, lt = "--")
     fig.plot(xs.map(x => (x, f(x))))
     fig.add(Label("sin(x^2)/x", 1.37, f(1.36), font = Font.decode("Times-18")))
     fig.add(Label(
       "1/x", 1.54, 1/1.5,
-      font = Font.decode("Serif-25").deriveFont(AffineTransform.getRotateInstance(0.49)),
+      font = Font.decode("Serif-25").deriveFont(AffineTransform.getRotateInstance(0.5)),
       color = Color.RED
     ))
     fig.show(730, 500)

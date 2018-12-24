@@ -4,7 +4,6 @@ Lets plot two overlapping gaussian 2-dimensional distributions centered at
 `(-1.5, 0)` and `(1.5, 0)` using 200,000 data points.
 
 ```scala
-import java.awt.Color
 import java.util.Random
 
 import xyz.devfortress.splot._
@@ -21,7 +20,7 @@ def main(args: Array[String]): Unit = {
   val gs = (0 to 100000).map(_ => (rnd.nextGaussian() - 1.5, rnd.nextGaussian())) ++
     (0 to 100000).map(_ => (rnd.nextGaussian() + 1.5, rnd.nextGaussian()))
 
-  fig.scatter(gs, pt = "o")
+  fig.scatter(gs, pt = ".")
   fig.show(730, 500)
 }
 ```
@@ -36,8 +35,9 @@ and point size we can make dense scatter plot to reveal its internal structure. 
 that like so:
 
 ```scala
-// Alpha channel is set to 10. Fully opaque (default) value is 255.
-fig.scatter(gs, pt = "o", color = new Color(0, 0, 0, 10))
+// Alpha channel is set to 255 * fa. Fully opaque 'fa' (default) value is 1 and
+// fully transparent is 0.
+fig.scatter(gs, pt = ".", fa = 0.036)
 ```
 
 ![](scatter-plot-2.png)
