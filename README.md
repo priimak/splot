@@ -4,9 +4,9 @@
 ===========================
 [![Build Status](https://travis-ci.com/priimak/splot.svg?branch=master)](https://travis-ci.com/priimak/splot)
 [![codecov.io](http://codecov.io/github/priimak/splot/coverage.svg?branch=master)](http://codecov.io/github/priimak/splot/coverage.svg?branch=master)
-[![License](https://img.shields.io/:license-MIT-red.svg)](https://raw.githubusercontent.com/priimak/splot/master/LICENSE)
+[![License](https://img.shields.io/:license-MIT-blue.svg)](https://raw.githubusercontent.com/priimak/splot/master/LICENSE)
 
-_Version: 0.3.0-SNAPSHOT_
+_Version: 0.4.0-SNAPSHOT_
 
 [Roadmap](http://git.devfortress.xyz/plugins/gitiles/splot/+/master/ROADMAP.md).
 
@@ -22,13 +22,13 @@ git clone http://git.devfortress.xyz/splot
 Current version of this library is available on maven central at these coordinates
 
 ```bash
-libraryDependencies += "xyz.devfortress.splot" % "splot-core_2.12" % "0.2.0"
+libraryDependencies += "xyz.devfortress.splot" % "splot-core_2.12" % "0.3.0"
 ```
 ```bash
 <dependency>
     <groupId>xyz.devfortress.splot</groupId>
     <artifactId>splot-core_2.12</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
 </dependency>
 ```
 
