@@ -213,14 +213,14 @@ case class Figure(
    * @param data Sequence of data points.
    * @param color Fill color for the bars
    * @param edgeColor Color for the edge of the bars.
-   * @param edgeWith Width of the bar edges.
+   * @param edgeWidth Width of the bar edges.
    * @param width Function that defines width of the bar. For each bar it receives distance to the next data point and
    *              returns distance to be used for drawing current bar. Default function is identity, which means that
    *              bars are drawn edge to edge without any space between bars.
    * @param alpha Transparency for the fill color from 0 (fully transparent) to 1 (fully opaque, default value)
    */
   def barplot[C: ColorLike](data: Seq[(Double, Double)], color: C = Color.YELLOW,
-      edgeColor: C = Color.BLACK, edgeWith: Int = 1, width: Double => Double = w => w, alpha: Double = 1.0): Unit = {
+      edgeColor: C = Color.BLACK, edgeWidth: Int = 1, width: Double => Double = w => w, alpha: Double = 1.0): Unit = {
     if (data.size > 1) { // draw only if there are at least two data points
       val p2s = data.zip(data.tail)
       val colorOfEdge = ColorLike[C].asColor(edgeColor)
@@ -231,7 +231,7 @@ case class Figure(
           width = width(p2._2._1 - p2._1._1),
           height = p2._1._2,
           color = colorOfEdge,
-          lw = edgeWith,
+          lw = edgeWidth,
           lt = LineType.SOLID,
           fillColor = Some(colorOfFill),
           alpha = alpha
@@ -245,7 +245,7 @@ case class Figure(
         width = width(lastPair._2._1 - lastPair._1._1),
         height = lastPair._2._2,
         color = colorOfEdge,
-        lw = edgeWith,
+        lw = edgeWidth,
         lt = LineType.SOLID,
         fillColor = Some(colorOfFill),
         alpha = alpha

@@ -3,6 +3,7 @@
 @@@ index
 
 * [Architecture](Architecture.md)
+* [Usage](Usage.md)
 * [Examples](Examples/index.md)
 <!--* [Scala Objects](Scala_Objects/index.md)-->
 
