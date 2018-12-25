@@ -1,4 +1,4 @@
-![SPlot Logo](http://www.devfortress.xyz/assets/splot-logo.png)
+![SPlot Logo](splot-logo.png)
 
  Scala 2D Plotting library.
 ===========================
