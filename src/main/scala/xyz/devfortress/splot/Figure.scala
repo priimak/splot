@@ -2,7 +2,7 @@ package xyz.devfortress.splot
 
 import java.awt.event._
 import java.awt.image.BufferedImage
-import java.awt.{Font, _}
+import java.awt.{BasicStroke, Color, Dimension, Font, Graphics, Graphics2D, RenderingHints}
 import java.nio.file.Paths
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
@@ -10,7 +10,6 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 import javax.imageio.ImageIO
 import javax.swing.{JFrame, JOptionPane, JPanel}
 
-import scala.collection.mutable
 import scala.math.{max, min}
 
 /**
@@ -59,7 +58,7 @@ case class Figure(
     ) extends CommonSPlotLibTrait {
   private var currentDomain: (Double, Double) = domain.getOrElse((0, 0))
   private var currentRange: (Double, Double) = range.getOrElse((0, 0))
-  private val plotElements: mutable.MutableList[PlotElement] = mutable.MutableList()
+  private var plotElements: Seq[PlotElement] = Seq()
   val currentImage = new AtomicReference[BufferedImage]()
   private val selectingForZoom = new AtomicBoolean(false)
   private val frame: AtomicReference[JFrame] = new AtomicReference[JFrame]()
@@ -73,7 +72,9 @@ case class Figure(
   /**
    * Add new plot to this figure
    */
-  def add(plotElement: PlotElement): Unit = plotElements += plotElement
+  def add(plotElement: PlotElement): Unit = {
+    plotElements = plotElements.appended(plotElement)
+  }
 
   /**
    * Convenience function that can be used instead of fig += LinePlot(...). Adds line plot.
@@ -84,12 +85,12 @@ case class Figure(
    */
   def plot[C: ColorLike, L: LinesTypeLike](
       data: Seq[(Double, Double)], color: C = Color.BLACK, lw: Int = 1, lt: L = LineType.SOLID): Unit =
-    plotElements += LinePlot(
+    plotElements = plotElements.appended(LinePlot(
       data = data,
       color = ColorLike[C].asColor(color),
       lineWidth = lw,
       lineType = LinesTypeLike[L].asLineType(lt)
-    )
+    ))
 
   /**
    * Convenience function that can be used instead of fig += PointPlot(...). Adds scatter plot.
@@ -111,13 +112,13 @@ case class Figure(
       case _ => SomethingLikeColor[S].asSomething(fc)
         .flatMap(c => Some(new Color(c.getRed, c.getGreen, c.getBlue, (fa * 255).toInt)))
     }
-    plotElements += PointPlot(
+    plotElements = plotElements.appended(PointPlot(
       data,
       pointSize = ps,
       color = ColorLike[C].asColor(color),
       pointType = PointTypeLike[P].asPointType(pt),
       fillColor = fillColor
-    )
+    ))
   }
 
   /**
@@ -132,13 +133,13 @@ case class Figure(
    */
   def zscatter[P: PointTypeLike](data: Seq[(Double, Double)], zValues: Seq[Double], ps: Int = 5,
     colorMap: Double => Color = colormaps.viridis, pt: P = PointType.Dot): Unit =
-    plotElements += ZPointPlot(
+    plotElements = plotElements.appended(ZPointPlot(
       data,
       zValues,
       pointSize = ps,
       colorMap = colorMap,
       pointType = PointTypeLike[P].asPointType(pt)
-    )
+    ))
 
   /**
    * Convenience function that can be used instead of fig += [[ZMapPlot]](...) for plotting (x,y)->z function on
@@ -160,14 +161,14 @@ case class Figure(
   def map(f: (Double, Double) => Double, xDomain: (Double, Double), yDomain: (Double, Double),
     colorMap: Double => Color = colormaps.viridis, zRange: (Double, Double) = (0, 0),
     inDomain: (Double, Double) => Boolean = derivedDomain): Unit =
-    plotElements += ZMapPlot(
+    plotElements = plotElements.appended(ZMapPlot(
       zFunction = f, domain = xDomain, range = yDomain, zRange = zRange, colorMap = colorMap,
       inDomain =
         if (inDomain.equals(derivedDomain))
           (x, y) => xDomain._1 <= x && x <= xDomain._2 && yDomain._1 <= y && y < yDomain._2
         else
           inDomain
-    )
+    ))
 
   /**
    * Add rectangle.
@@ -196,7 +197,7 @@ case class Figure(
     val maybeColor = SomethingLikeColor[S].asSomething(fillColor)
     val xAnchor = integral.toDouble(anchor._1)
     val yAnchor = integral.toDouble(anchor._2)
-    plotElements += makeRectangle(
+    plotElements = plotElements.appended(makeRectangle(
       anchor = (xAnchor, yAnchor),
       width = width, height = height,
       color = ColorLike[C].asColor(color),
@@ -204,7 +205,7 @@ case class Figure(
       lt = LinesTypeLike[L].asLineType(lt),
       fillColor = maybeColor,
       alpha = alpha
-    )
+    ))
   }
 
   /**
@@ -225,7 +226,7 @@ case class Figure(
       val p2s = data.zip(data.tail)
       val colorOfEdge = ColorLike[C].asColor(edgeColor)
       val colorOfFill = ColorLike[C].asColor(color)
-      val boxes: Seq[Left[Shape, Label]] = for (p2 <- p2s) yield {
+      val boxes: Seq[Left[Plot, Label]] = for (p2 <- p2s) yield {
         Left(makeRectangle(
           anchor = (p2._1._1, 0.0),
           width = width(p2._2._1 - p2._1._1),
@@ -240,16 +241,18 @@ case class Figure(
 
       // last rectangle will be of the same width as the one before last
       val lastPair = p2s.last
-      plotElements += CompositePlotElement(boxes ++ Seq(Left(makeRectangle(
-        anchor = (lastPair._2._1, 0.0),
-        width = width(lastPair._2._1 - lastPair._1._1),
-        height = lastPair._2._2,
-        color = colorOfEdge,
-        lw = edgeWidth,
-        lt = LineType.SOLID,
-        fillColor = Some(colorOfFill),
-        alpha = alpha
-      ))))
+      plotElements = plotElements.appended(CompositePlotElement(
+        boxes ++ Seq(Left(makeRectangle(
+          anchor = (lastPair._2._1, 0.0),
+          width = width(lastPair._2._1 - lastPair._1._1),
+          height = lastPair._2._2,
+          color = colorOfEdge,
+          lw = edgeWidth,
+          lt = LineType.SOLID,
+          fillColor = Some(colorOfFill),
+          alpha = alpha
+        )))
+      ))
     }
   }
 
@@ -281,7 +284,7 @@ case class Figure(
    * @return instance of [[SPlotImage]]
    */
   def makeImage(width: Int, height: Int): SPlotImage = {
-    _makeImage(width, height, true)
+    _makeImage(width, height, setRangeAndDomain = true)
   }
 
   private def getBoundsFromPlots(bounds: Option[(Double, Double)], extractBound: Plot => (Double, Double))= {
@@ -403,7 +406,7 @@ case class Figure(
     var selPoint1: java.awt.Point = new java.awt.Point(0, 0)
     var selPoint2: Option[java.awt.Point] = None
 
-    val plotPanel = new JPanel() {
+    val plotPanel: JPanel = new JPanel() {
       override def paintComponent(g: Graphics): Unit = {
         super.paintComponent(g)
         val currentFrameDimentions = (getWidth, getHeight)
@@ -508,31 +511,29 @@ case class Figure(
     })
 
     import javax.swing.SwingUtilities
-    SwingUtilities.invokeLater(new Runnable() {
-      override def run(): Unit = {
-        import javax.swing.JFrame
-        val theFrame = new JFrame(name)
-        frame.set(theFrame)
-        theFrame.addKeyListener(new KeyAdapter {
-          override def keyPressed(e: KeyEvent): Unit = {
-            e.getKeyChar match {
-              case 'q' => theFrame.dispose() // close whole window on just pressing 'q'
-              case 'r' => // reset zoom
-                currentDomain = getBoundsFromPlots(domain, _.domain)
-                currentRange = getBoundsFromPlots(range, _.range)
-                resetP.set(true)
-                plotPanel.repaint()
-              case _ => // NOOP
-            }
+    SwingUtilities.invokeLater(() => {
+      import javax.swing.JFrame
+      val theFrame = new JFrame(name)
+      frame.set(theFrame)
+      theFrame.addKeyListener(new KeyAdapter {
+        override def keyPressed(e: KeyEvent): Unit = {
+          e.getKeyChar match {
+            case 'q' => theFrame.dispose() // close whole window on just pressing 'q'
+            case 'r' => // reset zoom
+              currentDomain = getBoundsFromPlots(domain, _.domain)
+              currentRange = getBoundsFromPlots(range, _.range)
+              resetP.set(true)
+              plotPanel.repaint()
+            case _ => // NOOP
           }
-        })
-        theFrame.setPreferredSize(dimension)
-        theFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
-        theFrame.getContentPane.add(plotPanel)
-        theFrame.pack()
-        theFrame.setLocationByPlatform(true)
-        theFrame.setVisible(true)
-      }
+        }
+      })
+      theFrame.setPreferredSize(dimension)
+      theFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
+      theFrame.getContentPane.add(plotPanel)
+      theFrame.pack()
+      theFrame.setLocationByPlatform(true)
+      theFrame.setVisible(true)
     })
   }
 
@@ -557,6 +558,10 @@ case class Figure(
       ))
     }
   }
+}
+
+object Figure {
+  def DEFAULT_FONT = Font.decode("SanSerif-20")
 }
 
 import javax.swing.{JMenuItem, JPopupMenu}

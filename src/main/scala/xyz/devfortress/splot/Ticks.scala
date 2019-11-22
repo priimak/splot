@@ -31,13 +31,13 @@ object Ticks {
   val DEFAULT_YTICKS_PLOTTER: (DrawingContext, Seq[(Double, String)]) => Int = yTicksPlotter()
 
   private def floor(d: Double, decimalPlace: Int) =
-    BigDecimal(d).setScale(decimalPlace, BigDecimal.RoundingMode.FLOOR).doubleValue()
+    BigDecimal(d).setScale(decimalPlace, BigDecimal.RoundingMode.FLOOR).doubleValue
 
   private def ceil(d: Double, decimalPlace: Int) =
-    BigDecimal(d).setScale(decimalPlace, BigDecimal.RoundingMode.CEILING).doubleValue()
+    BigDecimal(d).setScale(decimalPlace, BigDecimal.RoundingMode.CEILING).doubleValue
 
 
-  val x: (Double, Double) => Seq[(Double, String)] = ticksN(5)_
+  val x: (Double, Double) => Seq[(Double, String)] = ticksN(5)
 
   /**
    * Function that is passed as xTicks and yTicks parameter to [[Figure]] constructor which will make 10 or so ticks.
@@ -104,32 +104,25 @@ object Ticks {
     import ctx._
     val bottomYPos = imageHeight - bottomPadding
 
-    val savedFont = g2.getFont
-    val savedStroke = g2.getStroke
-    val savedColor = g2.getColor
 
-    g2.setFont(font)
-    g2.setColor(color)
-    g2.setStroke(stroke)
-    val metrics = g2.getFontMetrics()
-
-    var hasLabels = false
-    ticks.foreach {
-      case (x, text) =>
-        val xPos = x2i(x)
-        val tickYEnd = bottomYPos + tickLength
-        g2.drawLine(xPos, bottomYPos, xPos, tickYEnd)
-        if (!text.isEmpty) {
-          g2.drawString(text, xPos - metrics.stringWidth(text) / 2, tickYEnd + metrics.getHeight)
-          hasLabels = true
+    var extraHeight: Int = 0
+    g2.withFont(font)
+      .withColor(color)
+      .withStroke(stroke)
+      .draw { g2 =>
+        val metrics = g2.getFontMetrics()
+        ticks.foreach {
+          case (x, text) =>
+            val xPos = x2i(x)
+            val tickYEnd = bottomYPos + tickLength
+            g2.drawLine(xPos, bottomYPos, xPos, tickYEnd)
+            if (!text.isEmpty) {
+              g2.drawString(text, xPos - metrics.stringWidth(text) / 2, tickYEnd + metrics.getHeight)
+              extraHeight = metrics.getHeight
+            }
         }
-    }
-
-    g2.setColor(savedColor)
-    g2.setStroke(savedStroke)
-    g2.setFont(savedFont)
-
-    tickLength + (if (hasLabels) metrics.getHeight else 0)
+      }
+    tickLength + extraHeight
   }
 
   /**

@@ -8,11 +8,11 @@ import java.awt.image.{BufferedImage, BufferedImageOp, ImageObserver, RenderedIm
 import java.text.AttributedCharacterIterator
 import java.util
 
-import scala.collection.mutable
+import scala.collection.{JavaConverters, mutable}
 
 sealed trait ProxyAction
 object Capture extends ProxyAction
-case class Verify(calls: Iterator[CapturedCall]) extends ProxyAction
+case class Verify(calls: util.Iterator[CapturedCall]) extends ProxyAction
 
 case class CapturedCall(name: String, arguments: Seq[Any], retval: Any) {
   def this(args: Seq[Any], retval: Any) {
@@ -43,9 +43,9 @@ class G2Proxy(val g2: Graphics2D, proxyAction: ProxyAction = Capture) extends Gr
     this(g2Proxy.g2, Verify(g2Proxy.capture.iterator))
   }
 
-  private val capture = mutable.MutableList[CapturedCall]()
+  private val capture = new util.ArrayList[CapturedCall]()
 
-  def getCapture(): Seq[CapturedCall] = capture
+  def getCapture(): Seq[CapturedCall] = JavaConverters.asScalaIteratorConverter(capture.iterator).asScala.toSeq
 
   def verify()(checks: G2Proxy => Unit): Unit = checks(new G2Proxy(this))
 
@@ -53,7 +53,7 @@ class G2Proxy(val g2: Graphics2D, proxyAction: ProxyAction = Capture) extends Gr
     proxyAction match {
       case Capture =>
         val retval = action
-        capture += new CapturedCall(arguments, retval)
+        capture.add(new CapturedCall(arguments, retval))
         retval
       case Verify(calls) => {
         if (calls.hasNext) {

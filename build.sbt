@@ -3,7 +3,7 @@ name := "splot-core"
 organization := "xyz.devfortress.splot"
 version := "0.5.0-SNAPSHOT"
 
-scalaVersion := "2.12.8"
+scalaVersion := "2.13.1"
 
 pomIncludeRepository := { _ => false }
 
@@ -22,7 +22,7 @@ developers := List(
   Developer(
     id    = "priimak",
     name  = "Dmitri Priimak",
-    email = "priimak@gmail.com",
+    email = "priimak@devfortress.xyz",
     url   = url("http://www.devfortress.xyz")
   )
 )
@@ -46,6 +46,7 @@ lazy val root = (project in file(".")).
     paradoxTheme := Some(builtinParadoxTheme("generic"))
   )
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test"
+libraryDependencies += "org.scalatest" % "scalatest_2.13" % "3.1.0-SNAP13"
+libraryDependencies += "org.scilab.forge" % "jlatexmath" % "1.0.7"
 
 coverageExcludedPackages := "<empty>;xyz\\.devfortress\\.splot\\.colormaps\\..*"

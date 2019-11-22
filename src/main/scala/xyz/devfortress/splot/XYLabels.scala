@@ -11,20 +11,15 @@ object XYLabels {
     if (label.nonEmpty) {
       import ctx._
 
-      val savedFont = g2.getFont
-      val savedColor = g2.getColor
+      g2.withFont(font)
+        .withColor(color)
+        .draw { g2 =>
+          val metrics = g2.getFontMetrics
+          val x = (imageWidth - metrics.stringWidth(label)) / 2
+          val y = imageHeight - bottomPadding + ticksHeight + metrics.getHeight
 
-      g2.setFont(font)
-      g2.setColor(color)
-
-      val metrics = g2.getFontMetrics
-      val x = (imageWidth - metrics.stringWidth(label)) / 2
-      val y = imageHeight - bottomPadding + ticksHeight + metrics.getHeight
-
-      g2.drawString(label, x, y)
-
-      g2.setColor(savedColor)
-      g2.setFont(savedFont)
+          g2.drawString(label, x, y)
+        }
     }
   }
 
@@ -33,24 +28,15 @@ object XYLabels {
     if (label.nonEmpty) {
       import ctx._
 
-      val savedFont = g2.getFont
-      val savedColor = g2.getColor
-      val origTransformation = g2.getTransform
-
-      g2.setFont(font)
-      g2.setColor(color)
-
       val metrics = g2.getFontMetrics
       val halfLabelLen = metrics.stringWidth(label) / 2
       val x = (leftPadding - ticksWidth - metrics.getHeight * 1.2 - halfLabelLen).toInt
       val y = (imageHeight + metrics.getHeight) / 2
 
-      g2.rotate(-Math.PI / 2, x + halfLabelLen, imageHeight / 2)
-      g2.drawString(label, x, y)
-
-      g2.setTransform(origTransformation)
-      g2.setColor(savedColor)
-      g2.setFont(savedFont)
+      g2.withFont(font)
+        .withColor(color)
+        .withTransform(-Math.PI / 2, x + halfLabelLen, imageHeight / 2)
+        .draw(_.drawString(label, x, y))
     }
   }
 }

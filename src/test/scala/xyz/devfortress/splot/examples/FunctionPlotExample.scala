@@ -5,6 +5,7 @@ import java.awt.{Color, Font}
 import java.lang.Math.{pow, sin}
 
 import xyz.devfortress.splot._
+import xyz.devfortress.splot.math._
 
 object FunctionPlotExample {
   def f(x: Double): Double = sin(pow(x, 3)) / x
@@ -15,8 +16,8 @@ object FunctionPlotExample {
       showGrid = true,
       xTicks = Ticks(1 to 4),
     )
-    val xs = 1.0 to 5.0 by 0.001
 
+    val xs = mkSeq(1, 5, 0.001)
     fig.plot(xs.map(x => (x, 1/x)), color = "blue", lw = 2, lt = "--")
     fig.plot(xs.map(x => (x, f(x))))
     fig.add(Label("sin(x^2)/x", 1.37, f(1.36), font = Font.decode("Times-18")))

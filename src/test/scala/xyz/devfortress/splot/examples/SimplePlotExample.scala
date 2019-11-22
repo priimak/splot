@@ -4,6 +4,7 @@ import java.awt.{Color, Font}
 import java.lang.Math.abs
 
 import xyz.devfortress.splot._
+import xyz.devfortress.splot.math._
 
 object SimplePlotExample {
   // Function that we will plot
@@ -24,11 +25,11 @@ object SimplePlotExample {
     fig.map(f = (x, _) => x, xDomain = (7, 15), yDomain = (-0.4, -0.2))
 
     // Plot function f(x) as line plot.
-    val fdata: Seq[(Double, Double)] = (0.1 to 20.0 by 0.1).map(x => (x, f(x)))
+    val fdata: Seq[(Double, Double)] = mkSeq(0.1, 20, 0.1).map(x => (x, f(x)))
     fig.plot(fdata, lw = 4, color = "orange")
 
     // Plot number of cross-points along the line plot.
-    fig.scatter((0.2 to 20.0 by 0.6).map(x => (x, f(x))), ps = 20, pt = "+", color = "black")
+    fig.scatter(mkSeq(0.2, 20, 0.6).map(x => (x, f(x))), ps = 20, pt = "+", color = "black")
 
     // Compute derivatives at following points.
     val x = Seq(3.7, 4.6, 7)

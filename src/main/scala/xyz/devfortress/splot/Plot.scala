@@ -170,12 +170,10 @@ final case class LinePlot(
 
   override def draw(ctx: DrawingContext, plotIndex: Int): Unit = {
     import ctx._
-    g2.setColor(color)
 
-    val savedStroke = g2.getStroke
-    g2.setStroke(stroke)
-    g2.drawPolyline(xy._1.map(x => x2i(x)).toArray, xy._2.map(a => y2i(a)).toArray, xy._1.size)
-    g2.setStroke(savedStroke)
+    g2.withColor(color)
+      .withStroke(stroke)
+      .draw(_.drawPolyline(xy._1.map(x => x2i(x)).toArray, xy._2.map(a => y2i(a)).toArray, xy._1.size))
   }
 }
 
@@ -202,19 +200,19 @@ final case class Shape(
   override def draw(ctx: DrawingContext, plotIndex: Int): Unit = {
     import ctx._
     val onScreenXY = data.map(xy => (x2i(xy._1), y2i(xy._2))).unzip
-    val savedColor = g2.getColor
-    if (fillColor.isDefined) {
-      g2.setColor(fillColor.get)
-      g2.fillPolygon(onScreenXY._1.toArray, onScreenXY._2.toArray, data.size)
-    }
-    if (lineWidth > 0) {
-      val savedStroke = g2.getStroke
-      g2.setColor(color)
-      g2.setStroke(stroke)
-      g2.drawPolygon(onScreenXY._1.toArray, onScreenXY._2.toArray, data.size)
-      g2.setStroke(savedStroke)
-    }
-    g2.setColor(savedColor)
+    g2.withColor(color)
+      .withStroke(stroke)
+      .draw { g2 =>
+        if (fillColor.isDefined) {
+          g2.setColor(fillColor.get)
+          g2.fillPolygon(onScreenXY._1.toArray, onScreenXY._2.toArray, data.size)
+        }
+        if (lineWidth > 0) {
+          g2.setColor(color)
+          g2.setStroke(stroke)
+          g2.drawPolygon(onScreenXY._1.toArray, onScreenXY._2.toArray, data.size)
+        }
+      }
   }
 }
 
@@ -294,25 +292,22 @@ final case class ZMapPlot(
 case class Label(text: String, x: Double, y: Double, font: Font = Font.getFont(Font.SANS_SERIF),
     color: Color = Color.BLACK, anchor: Anchor = Anchor.LEFT_LOWER) extends PlotElement {
   def draw(g2: Graphics2D, atPosition: (Int, Int)): Unit = {
-    val savedFont = g2.getFont
-    val savedColor = g2.getColor
-    g2.setFont(font)
-    g2.setColor(color)
+    g2.withFont(font)
+      .withColor(color)
+      .draw { g2 =>
 
-    val metrics = g2.getFontMetrics
-    val width = metrics.stringWidth(text)
-    val xy = anchor match {
-      case Anchor.LEFT_LOWER => atPosition
-      case Anchor.LEFT_UPPER => (atPosition._1, atPosition._2 + metrics.getAscent)
-      case Anchor.RIGHT_LOWER => (atPosition._1 - width , atPosition._2)
-      case Anchor.RIGHT_UPPER => (atPosition._1 - width , atPosition._2 + metrics.getAscent)
-      case Anchor.CENTER_LOWER => (atPosition._1 - width / 2 , atPosition._2)
-      case Anchor.CENTER_UPPER => (atPosition._1 - width / 2 , atPosition._2 + metrics.getAscent)
-      case Anchor.CENTER => (atPosition._1 - width / 2 , atPosition._2 + metrics.getAscent / 2)
-    }
-    g2.drawString(text, xy._1.toInt, xy._2.toInt)
-
-    g2.setFont(savedFont)
-    g2.setColor(savedColor)
+        val metrics = g2.getFontMetrics
+        val width = metrics.stringWidth(text)
+        val xy = anchor match {
+          case Anchor.LEFT_LOWER => atPosition
+          case Anchor.LEFT_UPPER => (atPosition._1, atPosition._2 + metrics.getAscent)
+          case Anchor.RIGHT_LOWER => (atPosition._1 - width, atPosition._2)
+          case Anchor.RIGHT_UPPER => (atPosition._1 - width, atPosition._2 + metrics.getAscent)
+          case Anchor.CENTER_LOWER => (atPosition._1 - width / 2, atPosition._2)
+          case Anchor.CENTER_UPPER => (atPosition._1 - width / 2, atPosition._2 + metrics.getAscent)
+          case Anchor.CENTER => (atPosition._1 - width / 2, atPosition._2 + metrics.getAscent / 2)
+        }
+        g2.drawString(text, xy._1.toInt, xy._2.toInt)
+      }
   }
 }
