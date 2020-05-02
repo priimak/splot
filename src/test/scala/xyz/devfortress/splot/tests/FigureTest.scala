@@ -4,10 +4,10 @@ import java.awt._
 import java.awt.image.BufferedImage
 import java.util.concurrent.atomic.AtomicReference
 
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 import xyz.devfortress.splot._
 
-class FigureTest extends FunSuite {
+class FigureTest extends AnyFunSuite {
   private def makeG2Capture(): (BufferedImage => Graphics2D, AtomicReference[G2Proxy]) = {
     val g2capture = new AtomicReference[G2Proxy](null)
     val g2c: BufferedImage => Graphics2D  = image => {
@@ -47,12 +47,14 @@ class FigureTest extends FunSuite {
       setClip(50, 50, 700, 500)
 
       // draw two lines of black color and lw=1 corresponding to our plot
+      getColor
       setColor(Color.BLACK)
       getStroke
       setStroke(new BasicStroke(1))
       drawPolyline(Array(50, 120, 190), Array(550, 450, 400), 3)
       setStroke(new BasicStroke(1))
 
+      setColor(Color.WHITE)
       setClip(null)
 
       // draw bounding box
@@ -64,7 +66,7 @@ class FigureTest extends FunSuite {
       drawRect(50, 50, 700, 500)
       // restore saved stroke and color
       setStroke(new BasicStroke(1))
-      setColor(Color.BLACK)
+      setColor(Color.WHITE)
 
       // draw title
       getFont
@@ -74,7 +76,7 @@ class FigureTest extends FunSuite {
       getFontMetrics()
       drawString("A simple plot", 354, 35)
       // restore saved font and color
-      setColor(Color.BLACK)
+      setColor(Color.WHITE)
       setFont(Font.decode("Dialog-12"))
     }}
   }
