@@ -8,7 +8,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 
 import javax.imageio.ImageIO
-import javax.swing.{JFrame, JOptionPane, JPanel}
+import javax.swing.{JFrame, JOptionPane, JPanel, WindowConstants}
 
 import scala.math.{max, min}
 
@@ -529,7 +529,7 @@ case class Figure(
         }
       })
       theFrame.setPreferredSize(dimension)
-      theFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
+      theFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE)
       theFrame.getContentPane.add(plotPanel)
       theFrame.pack()
       theFrame.setLocationByPlatform(true)
