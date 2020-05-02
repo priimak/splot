@@ -3,10 +3,10 @@ dist: trusty
 language: scala
 
 scala:
-  - 2.12.8
+  - 2.13.1
 
 jdk:
-  - openjdk8
+  - openjdk11
 
 script:
   - sbt clean coverage test coverageReport
