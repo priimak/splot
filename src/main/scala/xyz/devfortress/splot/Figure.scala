@@ -29,12 +29,13 @@ import scala.math.{max, min}
  *                     true however that can slow down plotting data sets are very large, in which case you may want
  *                     to set this value to false.
  */
-case class Figure(
+case class Figure[A : STextLike](
       name: String = "Figure",
-      title: String = "",
+      title: A = "",
       titleFont: Font = Font.decode("Times-20"),
-      xLabel: String = "",
-      yLabel: String = "",
+      titleFontSize: Option[Int] = None,
+      xLabel: A = "",
+      yLabel: A = "",
       bgColor: Color = Color.WHITE,
       leftPadding: Int = 50,
       rightPadding: Int = 50,
@@ -48,10 +49,10 @@ case class Figure(
       yTicks: (Double, Double) => Seq[(Double, String)] = Ticks.ticks5,
       backgroundPlotter: (DrawingContext, Color) => Unit = Background.DEFAULT_BACKGROUND_PLOTTER,
       gridPlotter: (DrawingContext, Seq[Int], Seq[Int]) => Unit = Grid.DEFAULT_GRID_PLOTTER,
-      xLabelPlotter: (DrawingContext, Int, String) => Unit = XYLabels.DEFAULT_XLABEL_PLOTTER,
-      yLabelPlotter: (DrawingContext, Int, String) => Unit = XYLabels.DEFAULT_YLABEL_PLOTTER,
+      xLabelPlotter: (DrawingContext, Int, SText) => Unit = XYLabels.DEFAULT_XLABEL_PLOTTER,
+      yLabelPlotter: (DrawingContext, Int, SText) => Unit = XYLabels.DEFAULT_YLABEL_PLOTTER,
       borderPlotter: (DrawingContext, Color) => Unit = Border.DEFAULT_BORDER_PLOTTER,
-      titlePlotter: (DrawingContext, String, Font) => Unit = Title.DEFAULT_TITLE_PLOTTER,
+      titlePlotter: (DrawingContext, SText, Font) => Unit = Title.DEFAULT_TITLE_PLOTTER,
       xTicksPlotter: (DrawingContext, Seq[(Double, String)]) => Int = Ticks.DEFAULT_XTICKS_PLOTTER,
       yTicksPlotter: (DrawingContext, Seq[(Double, String)]) => Int = Ticks.DEFAULT_YTICKS_PLOTTER,
       g2creator: BufferedImage => Graphics2D = image => image.createGraphics() // exposed for testing
@@ -182,15 +183,15 @@ case class Figure(
    * @param fillColor optional fill color for the interior of the rectangle
    * @param alpha     transparency of the
    */
-  def rectangle[C: ColorLike, S: SomethingLikeColor, A: Integral, L: LinesTypeLike](
-      anchor: (A, A),
+  def rectangle[C: ColorLike, S: SomethingLikeColor, X: Integral, L: LinesTypeLike](
+      anchor: (X, X),
       width: Double,
       height: Double,
       color: C = Color.BLUE,
       lw: Int = 1,
       lt: L = LineType.SOLID,
       fillColor: S = Option.empty,
-      alpha: Double = 1.0)(implicit integral: Integral[A]): Unit = {
+      alpha: Double = 1.0)(implicit integral: Integral[X]): Unit = {
     assert(width > 0, "Width must be greater than 0.")
     assert(height > 0, "Height must be greater than 0.")
     assert(alpha > 0 && alpha <= 1, "Transparency value must be in range (0, 1].")
@@ -226,7 +227,7 @@ case class Figure(
       val p2s = data.zip(data.tail)
       val colorOfEdge = ColorLike[C].asColor(edgeColor)
       val colorOfFill = ColorLike[C].asColor(color)
-      val boxes: Seq[Left[Plot, Label]] = for (p2 <- p2s) yield {
+      val boxes: Seq[Left[Plot, Label[_]]] = for (p2 <- p2s) yield {
         Left(makeRectangle(
           anchor = (p2._1._1, 0.0),
           width = width(p2._2._1 - p2._1._1),
@@ -344,15 +345,15 @@ case class Figure(
     backgroundPlotter(drawingContext, bgColor)
 
     // Draw all plot elements
-    plotElements.flatMap(p => p match {
+    plotElements.flatMap {
       case CompositePlotElement(plotElementsInComposite) => plotElementsInComposite.map {
         case Left(plt) => plt
         case Right(lbl) => lbl
       }
-      case _ => Seq(p)
-    }).zipWithIndex.foreach(p => p._1 match {
+      case p => Seq(p)
+    }.zipWithIndex.foreach(p => p._1 match {
       case plt: Plot => plt.draw(drawingContext, p._2)
-      case label: Label => label.draw(g2, (xScale(label.x), yScale(label.y)))
+      case label: Label[_] => label.draw(g2, (xScale(label.x), yScale(label.y)))
       case _ => throw new RuntimeException("Recursive use of CompositePlotElement is not supported")
     })
 
@@ -372,22 +373,22 @@ case class Figure(
       gridPlotter(drawingContext, xticks.map(x => xScale(x._1)), yticks.map(y => yScale(y._1)))
     }
 
-    xLabelPlotter(drawingContext, xTicksVerticalDistance, xLabel)
-    yLabelPlotter(drawingContext, yTicksHorizontalDistance, yLabel)
+    xLabelPlotter(drawingContext, xTicksVerticalDistance, implicitly[STextLike[A]].asSText(xLabel))
+    yLabelPlotter(drawingContext, yTicksHorizontalDistance, implicitly[STextLike[A]].asSText(yLabel))
 
-    // Draw title
-    titlePlotter(drawingContext, title, titleFont)
+    titlePlotter(
+      drawingContext,
+      implicitly[STextLike[A]].asSText(title),
+      titleFontSize.map(fs => titleFont.deriveFont(fs.toFloat)).getOrElse(titleFont)
+    )
 
     new SPlotImage(image)
   }
 
-  private def drawXCenteredString(g: Graphics2D, text: String, x: Int, y: Int): Unit =
-    g.drawString(text, x - g.getFontMetrics().stringWidth(text) / 2, y)
-
   /**
    * Display plot window.
    */
-  def show(size: (Int, Int) = (1422, 800)): Figure = {
+  def show(size: (Int, Int) = (1422, 800)): Figure[A] = {
     if (frame.get() == null)
       _show(new Dimension(size._1, size._2))
     buildingFigure.await()
@@ -438,10 +439,7 @@ case class Figure(
           }
 
         } else {
-          val domainWidth = currentDomain._2 - currentDomain._1
-          val rangeWidth = currentRange._2 - currentRange._1
-
-          val image = _makeImage(getWidth, getHeight, false).image
+          val image = _makeImage(getWidth, getHeight, setRangeAndDomain = false).image
           currentImage.set(image)
           g.drawImage(image, 0, 0, this)
 
@@ -459,9 +457,6 @@ case class Figure(
       }
 
       override def getPreferredSize: Dimension = new Dimension(dimension)
-
-      private def drawXCenteredString(g: Graphics2D, text: String, x: Int, y: Int): Unit =
-        g.drawString(text, x - g.getFontMetrics().stringWidth(text) / 2, y)
     }
 
     plotPanel.addMouseListener(new MouseAdapter {
@@ -537,7 +532,7 @@ case class Figure(
     })
   }
 
-  def save(file: String): Figure = {
+  def save(file: String): Figure[A] = {
     val saveToFilePath = Paths.get(file)
     val image = currentImage.get()
     if (saveToFilePath.toString.endsWith(".png")) {
@@ -561,12 +556,12 @@ case class Figure(
 }
 
 object Figure {
-  def DEFAULT_FONT = Font.decode("SanSerif-20")
+  def DEFAULT_FONT: Font = Font.decode("SanSerif-20")
 }
 
 import javax.swing.{JMenuItem, JPopupMenu}
 
-class PlotPopUpMenu(parent: JPanel, figure: Figure, savedDir: AtomicReference[String]) extends JPopupMenu {
+class PlotPopUpMenu(parent: JPanel, figure: Figure[_], savedDir: AtomicReference[String]) extends JPopupMenu {
   private val saveFile = new JMenuItem("Save as image file")
   saveFile.addActionListener(_ => {
     import javax.swing.JFileChooser

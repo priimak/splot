@@ -3,7 +3,11 @@ name := "splot-core"
 organization := "xyz.devfortress.splot"
 version := "0.5.0-SNAPSHOT"
 
-scalaVersion := "2.13.1"
+scalaVersion := "2.13.2"
+scalacOptions += "-Xfatal-warnings"
+scalacOptions += "-feature"
+scalacOptions += "-deprecation"
+scalacOptions += "-language:implicitConversions"
 
 pomIncludeRepository := { _ => false }
 

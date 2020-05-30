@@ -8,27 +8,26 @@ import java.awt.image.{BufferedImage, BufferedImageOp, ImageObserver, RenderedIm
 import java.text.AttributedCharacterIterator
 import java.util
 
-import scala.collection.{JavaConverters, mutable}
+import scala.jdk.CollectionConverters._
 
 sealed trait ProxyAction
 object Capture extends ProxyAction
 case class Verify(calls: util.Iterator[CapturedCall]) extends ProxyAction
 
 case class CapturedCall(name: String, arguments: Seq[Any], retval: Any) {
-  def this(args: Seq[Any], retval: Any) {
+  def this(args: Seq[Any], retval: Any) =
     this(Thread.currentThread().getStackTrace()(3).getMethodName, args, retval)
-  }
 
   override def toString: String = s"$name(${CapturedCall.o2s(arguments)})"
 }
 
 object CapturedCall {
-  def o2s(as: Seq[Any]): String = {
 
+  def o2s(as: Seq[Any]): String = {
     as.map(Option.apply).map {
       case None => "null"
       case Some(e) => e match {
-        case xs: Some[Array[_]] => xs.map(_.toString).mkString("[", ",", "]")
+        case xs: Some[_] => xs.map(_.toString).mkString("[", ",", "]")
         case bs: BasicStroke => s"BasicStroke(${bs.getLineWidth}, ${bs.getEndCap}, " +
           s"${bs.getLineJoin}, ${bs.getMiterLimit}, ${bs.getDashArray}, ${bs.getDashPhase})"
         case a => a.toString
@@ -39,13 +38,9 @@ object CapturedCall {
 
 class G2Proxy(val g2: Graphics2D, proxyAction: ProxyAction = Capture) extends Graphics2D {
 
-  private def this(g2Proxy: G2Proxy) {
-    this(g2Proxy.g2, Verify(g2Proxy.capture.iterator))
-  }
-
   private val capture = new util.ArrayList[CapturedCall]()
 
-  def getCapture(): Seq[CapturedCall] = JavaConverters.asScalaIteratorConverter(capture.iterator).asScala.toSeq
+  def getCapture(): Seq[CapturedCall] = capture.iterator.asScala.toSeq
 
   def verify()(checks: G2Proxy => Unit): Unit = checks(new G2Proxy(this))
 

@@ -10,9 +10,10 @@ import xyz.devfortress.splot._
 object HeatmapPlotExample {
 
   def main(args: Array[String]): Unit = {
-    val fig = Figure(name = "Wave Interference",
+    val fig = Figure(
+      name = "Wave Interference",
       title = "Interference pattern produced by two wave sources",
-      yTicks = Ticks(), xTicks = Ticks(),
+      yTicks = Ticks(), xTicks = Ticks(), // disable ticks along both axis
     )
 
     def waveFunction(x: Double, y: Double, freq: Double, phase: Double): Double = {
@@ -43,8 +44,8 @@ object HeatmapPlotExample {
     )
 
     val labelFont = Font.decode("Times-25")
-    fig add Label("A", 0, 0, color = WHITE, font = labelFont, anchor = CENTER)
-    fig add Label("B", 2, -1, color = WHITE, font = labelFont, anchor = CENTER)
+    fig add Label("$A$", 0, 0, color = WHITE, font = labelFont, anchor = CENTER)
+    fig add Label("$B$", 2, -1, color = WHITE, font = labelFont, anchor = CENTER)
 
     fig.show(730, 500)
   }

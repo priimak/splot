@@ -11,8 +11,8 @@ object ScatterPlotExample {
       domain = (-6, 6), range = (-5, 5),
       title = "Overlapping Gaussian Distributions",
       showGrid = true,
-      xLabel = "x-axis",
-      yLabel = "y-axis"
+      xLabel = """$x-\texttt{axis}$""",
+      yLabel = """$y-\texttt{axis}$"""
     )
 
     val rnd = new Random()

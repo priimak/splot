@@ -37,4 +37,27 @@ package object splot {
     override def abs(x: Double): Double = Math.abs(x)
     override def compare(x: Double, y: Double): Int = x.compareTo(y)
   }
+
+  // Type-class STextLike
+  trait STextLike[-A] {
+    def asSText(a: A): SText
+  }
+
+  object STextLike {
+    implicit object StringIsSTextLike extends STextLike[String] {
+      override def asSText(text: String): SText = {
+        if (text.startsWith("$") && text.endsWith("$"))
+          LaTeXText(text.substring(1, text.length - 1)) // assume that it is a latex
+        else
+          PlainText(text)
+      }
+    }
+
+    implicit object STextIsSText extends STextLike[SText] {
+      override def asSText(sText: SText): SText = sText
+    }
+  }
+
+  // any to Option[A]
+  implicit def anyToOption[A](a: A): Option[A] = Option(a)
 }

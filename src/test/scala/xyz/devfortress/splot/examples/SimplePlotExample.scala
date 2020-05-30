@@ -61,7 +61,7 @@ object SimplePlotExample {
       fillColor = Some(Color.PINK), color = Color.BLACK, lineWidth = 5
     )
 
-    fig.add(Label("sin(x)/x", 2, 0.5, Font.decode("Arial-18")))
+    fig.add(Label("""$\sin(x)/x$""", 2, 0.5, fontSize = 30))
 
     // Display window with the plot.
     fig.show()

@@ -50,7 +50,7 @@ object Ticks {
       val dPerN = d / numTicks
       val dPerN2 = dPerN / 2
 
-      val proposedTickDistance = Stream.from(1).map(d => floor(dPerN, d)).filter(_ != 0).head
+      val proposedTickDistance = LazyList.from(1).map(d => floor(dPerN, d)).filter(_ != 0).head
 
       val (decimalPoints, tickDistance) = (0 to 100)
         .map(x => (x, ceil(proposedTickDistance, x)))
@@ -73,8 +73,8 @@ object Ticks {
     }
   }
 
-  val ticks10: (Double, Double) => Seq[(Double, String)] = ticksN(9)_
-  val ticks5: (Double, Double) => Seq[(Double, String)] = ticksN(5)_
+  val ticks10: (Double, Double) => Seq[(Double, String)] = ticksN(9)
+  val ticks5: (Double, Double) => Seq[(Double, String)] = ticksN(5)
 
   val none: (Double, Double) => Seq[(Double, String)] = (_, _) => Seq()
 

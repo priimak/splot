@@ -6,7 +6,7 @@ import scala.math.{max, min}
 
 sealed trait PlotElement
 
-final case class CompositePlotElement(plotElements: Seq[Either[Plot, Label]]) extends PlotElement
+final case class CompositePlotElement(plotElements: Seq[Either[Plot, Label[_]]]) extends PlotElement
 
 trait Plot extends PlotElement with CommonSPlotLibTrait {
   /**
@@ -30,10 +30,15 @@ trait Plot extends PlotElement with CommonSPlotLibTrait {
 object Plot {
   def makeStroke(lineWidth: Int, lineType: LineType): Stroke = {
     if (lineType == LineType.SOLID)
-      new BasicStroke(lineWidth)
+      new BasicStroke(lineWidth.toFloat)
     else
       new BasicStroke(
-        lineWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 1, lineType.dashPattern.map(_ * lineWidth).toArray, 0
+        lineWidth.toFloat, // width
+        BasicStroke.CAP_ROUND, // cap
+        BasicStroke.JOIN_ROUND, // join
+        1, // miterLimit
+        lineType.dashPattern.map(_ * lineWidth).toArray, // dash[]
+        0 // dash_phase
       )
   }
 }
@@ -227,7 +232,7 @@ final case class ZMapPlot(
   colorMap: Double => Color = colormaps.viridis,
   override val inDomain: (Double, Double) => Boolean
 ) extends Plot {
-  var cachedZRange = zRange
+  private var cachedZRange = zRange
 
   override def draw(ctx: DrawingContext, plotIndex: Int): Unit = {
     import ctx._
@@ -289,25 +294,20 @@ final case class ZMapPlot(
  * @param color color of text. Default is black.
  * @param anchor where text is to be anchored.
  */
-case class Label(text: String, x: Double, y: Double, font: Font = Font.getFont(Font.SANS_SERIF),
-    color: Color = Color.BLACK, anchor: Anchor = Anchor.LEFT_LOWER) extends PlotElement {
-  def draw(g2: Graphics2D, atPosition: (Int, Int)): Unit = {
-    g2.withFont(font)
-      .withColor(color)
-      .draw { g2 =>
+case class Label[A : STextLike](
+    text: A, x: Double, y: Double,
+    font: Font = Font.decode(Font.SANS_SERIF),
+    color: Color = Color.BLACK,
+    anchor: Anchor = Anchor.LEFT_LOWER,
+    fontSize: Option[Int] = None,
+    angle: Double = 0) extends PlotElement {
+  private val sText = implicitly[STextLike[A]].asSText(text);
+  private val fontToDrawWith = fontSize.map(size => font.deriveFont(size.toFloat)).getOrElse(font)
 
-        val metrics = g2.getFontMetrics
-        val width = metrics.stringWidth(text)
-        val xy = anchor match {
-          case Anchor.LEFT_LOWER => atPosition
-          case Anchor.LEFT_UPPER => (atPosition._1, atPosition._2 + metrics.getAscent)
-          case Anchor.RIGHT_LOWER => (atPosition._1 - width, atPosition._2)
-          case Anchor.RIGHT_UPPER => (atPosition._1 - width, atPosition._2 + metrics.getAscent)
-          case Anchor.CENTER_LOWER => (atPosition._1 - width / 2, atPosition._2)
-          case Anchor.CENTER_UPPER => (atPosition._1 - width / 2, atPosition._2 + metrics.getAscent)
-          case Anchor.CENTER => (atPosition._1 - width / 2, atPosition._2 + metrics.getAscent / 2)
-        }
-        g2.drawString(text, xy._1.toInt, xy._2.toInt)
-      }
+  def draw(g2: Graphics2D, atPosition: (Int, Int)): Unit = {
+    sText match {
+      case ptext: PlainText => ptext.draw(g2, atPosition, anchor, color, angle, fontToDrawWith)
+      case latex: LaTeXText => latex.draw(g2, atPosition, anchor, color, angle, fontToDrawWith.getSize)
+    }
   }
 }

@@ -66,10 +66,10 @@ object PoligonPlotExample {
     val edgePadding = 0.2
     val newRange = (texas.map(_._2).min - edgePadding, texas.map(_._2).max + edgePadding)
     val fig = Figure(
-          title = "Texas",
-          xTicks = Ticks(), yTicks = Ticks(), // disable ticks along both axis
-          domain = (-109.067299 + edgePadding, -91.0569 - edgePadding),
-          range = newRange
+      title = "Texas",
+      xTicks = Ticks(), yTicks = Ticks(), // disable ticks along both axis
+      domain = (-109.067299 + edgePadding, -91.0569 - edgePadding),
+      range = newRange
     )
 
     // lineWidth set to 0 so as to show contour of the state using only fill color

@@ -21,6 +21,8 @@ class FigureTest extends AnyFunSuite {
   test("Figure with fixed domain and range") {
     val (g2creator, g2capture) = makeG2Capture()
     val fig = Figure(title = "A simple plot",
+      xLabel = """$$""",
+
       titleFont = Font.decode(Font.MONOSPACED),
       domain = (0, 10), range = (0, 5),
       xTicks = Ticks.none, yTicks = Ticks.none,
