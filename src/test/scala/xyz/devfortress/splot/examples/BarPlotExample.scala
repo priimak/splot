@@ -7,7 +7,8 @@ import xyz.devfortress.splot._
 object BarPlotExample {
   def main(args: Array[String]): Unit = {
     val fig = Figure(
-      title = "Temperature by the hour for 'Stovepipe Wells' for two different dates.",
+      title = PlainText("Temperature by the hour for 'Stovepipe Wells' for two different dates."),
+      titleFontSize = 15,
       xTicks = Ticks(0 to 24),
       yTicks = Ticks(0 to 30 by 5),
       xLabel = "Time of the day",

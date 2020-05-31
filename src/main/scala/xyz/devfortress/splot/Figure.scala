@@ -2,7 +2,7 @@ package xyz.devfortress.splot
 
 import java.awt.event._
 import java.awt.image.BufferedImage
-import java.awt.{BasicStroke, Color, Dimension, Font, Graphics, Graphics2D, RenderingHints}
+import java.awt.{Label => _, Shape => _, _}
 import java.nio.file.Paths
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
@@ -29,13 +29,13 @@ import scala.math.{max, min}
  *                     true however that can slow down plotting data sets are very large, in which case you may want
  *                     to set this value to false.
  */
-case class Figure[A : STextLike](
+case class Figure[A1 : STextLike, A2 : STextLike, A3 : STextLike](
       name: String = "Figure",
-      title: A = "",
+      title: A1 = PlainText(""),
       titleFont: Font = Font.decode("Times-20"),
       titleFontSize: Option[Int] = None,
-      xLabel: A = "",
-      yLabel: A = "",
+      xLabel: A2 = PlainText(""),
+      yLabel: A3 = PlainText(""),
       bgColor: Color = Color.WHITE,
       leftPadding: Int = 50,
       rightPadding: Int = 50,
@@ -373,12 +373,12 @@ case class Figure[A : STextLike](
       gridPlotter(drawingContext, xticks.map(x => xScale(x._1)), yticks.map(y => yScale(y._1)))
     }
 
-    xLabelPlotter(drawingContext, xTicksVerticalDistance, implicitly[STextLike[A]].asSText(xLabel))
-    yLabelPlotter(drawingContext, yTicksHorizontalDistance, implicitly[STextLike[A]].asSText(yLabel))
+    xLabelPlotter(drawingContext, xTicksVerticalDistance, STextLike[A2].asSText(xLabel))
+    yLabelPlotter(drawingContext, yTicksHorizontalDistance, STextLike[A3].asSText(yLabel))
 
     titlePlotter(
       drawingContext,
-      implicitly[STextLike[A]].asSText(title),
+      STextLike[A1].asSText(title),
       titleFontSize.map(fs => titleFont.deriveFont(fs.toFloat)).getOrElse(titleFont)
     )
 
@@ -388,7 +388,7 @@ case class Figure[A : STextLike](
   /**
    * Display plot window.
    */
-  def show(size: (Int, Int) = (1422, 800)): Figure[A] = {
+  def show(size: (Int, Int) = (1422, 800)): Figure[A1, A2, A3] = {
     if (frame.get() == null)
       _show(new Dimension(size._1, size._2))
     buildingFigure.await()
@@ -532,7 +532,7 @@ case class Figure[A : STextLike](
     })
   }
 
-  def save(file: String): Figure[A] = {
+  def save(file: String): Figure[A1, A2, A3] = {
     val saveToFilePath = Paths.get(file)
     val image = currentImage.get()
     if (saveToFilePath.toString.endsWith(".png")) {
@@ -561,7 +561,7 @@ object Figure {
 
 import javax.swing.{JMenuItem, JPopupMenu}
 
-class PlotPopUpMenu(parent: JPanel, figure: Figure[_], savedDir: AtomicReference[String]) extends JPopupMenu {
+class PlotPopUpMenu(parent: JPanel, figure: Figure[_, _, _], savedDir: AtomicReference[String]) extends JPopupMenu {
   private val saveFile = new JMenuItem("Save as image file")
   saveFile.addActionListener(_ => {
     import javax.swing.JFileChooser

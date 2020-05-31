@@ -14,7 +14,7 @@ package object splot {
   implicit val range2OptionDV: ((Double, Double)) => Option[(Double, Double)] = range2OptionD
   implicit val range2OptionIV: ((Int, Int)) => Option[(Double, Double)] = range2OptionI
 
-  implicit def gr2helper(g2: Graphics2D): Graphics2DHelper = new Graphics2DHelper(g2)
+  implicit def gr2helper(g2: Graphics2D): Graphics2DHelper = Graphics2DHelper(g2)
 
   val derivedDomain: (Double, Double) => Boolean = (_, _) => true
 
@@ -56,6 +56,8 @@ package object splot {
     implicit object STextIsSText extends STextLike[SText] {
       override def asSText(sText: SText): SText = sText
     }
+
+    def apply[A](implicit sTextLike: STextLike[A]): STextLike[A] = sTextLike
   }
 
   // any to Option[A]
