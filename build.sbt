@@ -17,8 +17,8 @@ homepage := Some(url("http://git.devfortress.xyz/plugins/gitiles/splot/+/master/
 
 scmInfo := Some(
   ScmInfo(
-    url("http://git.devfortress.xyz/plugins/gitiles/splot"),
-    "scm:http://git.devfortress.xyz/splot"
+    url("https://github.com/priimak/splot"),
+    "scm:https://github.com/priimak/splot.git"
   )
 )
 
