@@ -48,5 +48,5 @@ fig.add(Label("end", x = x(20), y = y(20) - 0.5, anchor = Anchor.RIGHT_UPPER, fo
 fig.show(900, 600)
 ```
 
-You should a window popup with following figure.
+You should see a window popup with following figure.
 ![](docs/readme-demo.png)
